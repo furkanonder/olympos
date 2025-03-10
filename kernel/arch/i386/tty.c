@@ -61,6 +61,7 @@ void terminal_putentryat(unsigned char c, uint8_t color, size_t x, size_t y) {
  * Writes a character to the terminal at current cursor position
  *
  * Handles basic cursor advancement and wrapping:
+ * - Processes '\n' as a newline (advances row, resets column)
  * - Moves to next line when reaching end of current line
  * - Wraps back to top when reaching bottom of screen
  *
@@ -68,11 +69,17 @@ void terminal_putentryat(unsigned char c, uint8_t color, size_t x, size_t y) {
  */
 void terminal_putchar(char c) {
     unsigned char uc = c;
-    terminal_putentryat(uc, terminal_color, terminal_column, terminal_row);
-    if (++terminal_column == VGA_WIDTH) {
+    if (uc == '\n') {
+        terminal_row++;
         terminal_column = 0;
-        if (++terminal_row == VGA_HEIGHT) {
-            terminal_row = 0;
+    }
+    else {
+        terminal_putentryat(uc, terminal_color, terminal_column, terminal_row);
+        if (++terminal_column == VGA_WIDTH) {
+            terminal_column = 0;
+            if (++terminal_row == VGA_HEIGHT) {
+                terminal_row = 0;
+            }
         }
     }
 }
