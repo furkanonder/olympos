@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 /**
  * Helper function to print a sequence of bytes
@@ -109,6 +110,31 @@ int printf(const char* restrict format, ...) {
 
             /* Print the string */
             if (!print(str, len)) {
+                return -1;
+            }
+            written += len;
+        }
+        /* Handle %d format specifier (integer) */
+        else if (*format == 'd') {
+            format++;
+            /* Get the integer argument */
+            int i = va_arg(parameters, int);
+
+            /* Convert integer to string */
+            char num_str[32];
+            itoa(i, num_str, 10);
+
+            /* Calculate string lenght */
+            size_t len = strlen(num_str);
+
+            /* Check for potential integer overflow */
+            if (maxrem < len) {
+                // TODO: Set errno to EOVERFLOW.
+                return -1;
+            }
+
+            /* Print the integer */
+            if (!print(num_str, len)) {
                 return -1;
             }
             written += len;
