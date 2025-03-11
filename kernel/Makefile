@@ -51,7 +51,7 @@ LIBS:=$(LIBS) $(KERNEL_ARCH_LIBS)
 # Define kernel object files
 KERNEL_OBJS=\
 $(KERNEL_ARCH_OBJS) \
-init/kernel_main.o \
+init/kernel.o \
 
 # Define all object files including C runtime objects
 OBJS=\
@@ -89,11 +89,11 @@ $(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o:
 	OBJ=`$(CC) $(CFLAGS) $(LDFLAGS) -print-file-name=$(@F)` && cp "$$OBJ" $@
 
 # Compile C source files
+# -MD: Generate dependency files
+# -c: Compile only, don't link
+# -std=gnu11: Use GNU C11 standard
 .c.o:
 	$(CC) -MD -c $< -o $@ -std=gnu11 $(CFLAGS) $(CPPFLAGS)
-	# -MD: Generate dependency files
-	# -c: Compile only, don't link
-	# -std=gnu11: Use GNU C11 standard
 
 # Compile NASM source files
 .nasm.o:
