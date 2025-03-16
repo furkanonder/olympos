@@ -139,6 +139,42 @@ int printf(const char* restrict format, ...) {
             }
             written += len;
         }
+        /* Handle %p format specifier (pointer) */
+        else if (*format == 'p') {
+            format++;
+            /* Get the pointer argument */
+            void *ptr = va_arg(parameters, void*);
+
+            /* Print "0x" prefix */
+            if (maxrem < 2) {
+                // TODO: Set errno to EOVERFLOW
+                return -1;
+            }
+            if (!print("0x", 2)) {
+                return -1;
+            }
+            written += 2;
+            maxrem -= 2;
+
+            /* Convert pointer to hexadecimal string */
+            char ptr_str[32];
+            /* Cast to unsigned long to ensure proper size */
+            itoa((unsigned long)ptr, ptr_str, 16);
+
+            size_t len = strlen(ptr_str);
+
+            /* Check for potential integer overflow */
+            if (maxrem < len) {
+                // TODO: Set errno to EOVERFLOW.
+                return -1;
+            }
+
+            /* Print the pointer address */
+            if (!print(ptr_str, len)) {
+                return -1;
+            }
+            written += len;
+        }
         /* Handle unrecognized format specifier */
         else {
             /* Reset to the beginning of the format specifier */

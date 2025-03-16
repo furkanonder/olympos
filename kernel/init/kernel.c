@@ -18,4 +18,9 @@ void kernel_main(void) {
 	int a = 27;
 	printf("Integer: %d\n", a);
 	printf("Negative Integer: %d\n", -42);
+
+	int x = 10;
+	int *ptr = &x;
+	printf("Address of x: %p\n", (void*)ptr);
+	printf("Address of ptr: %p\n", (void*)&ptr);
 }
