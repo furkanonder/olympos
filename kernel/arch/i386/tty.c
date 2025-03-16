@@ -33,6 +33,7 @@ void terminal_initialize(void) {
             terminal_buffer[index] = vga_entry(' ', terminal_color);
         }
     }
+    vga_update_cursor(0);
 }
 
 /**
@@ -55,6 +56,7 @@ void terminal_setcolor(uint8_t color) {
 void terminal_putentryat(unsigned char c, uint8_t color, size_t x, size_t y) {
     const size_t index = y * VGA_WIDTH + x;
     terminal_buffer[index] = vga_entry(c, color);
+    vga_update_cursor((uint16_t)index);
 }
 
 /**

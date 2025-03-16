@@ -4,9 +4,23 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "io.h"
+
 /* Standard VGA text mode dimensions */
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
+
+/* VGA ports for controlling the text-mode cursor */
+// CRT Controller Index Register - selects which register to write to
+#define VGA_COMMAND_PORT    0x3D4
+// CRT Controller Data Register - writes data to the selected register
+#define VGA_DATA_PORT       0x3D5
+
+/* VGA cursor position register commands */
+// Cursor Location High Register (register 14) - stores the high byte of cursor position
+#define VGA_HIGH_BYTE_COMMAND    0x0E
+// Cursor Location Low Register (register 15) - stores the low byte of cursor position
+#define VGA_LOW_BYTE_COMMAND     0x0F
 
 /**
  * VGA hardware text buffer address
@@ -65,6 +79,29 @@ static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg) {
  */
 static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
     return (uint16_t) uc | (uint16_t) color << 8;
+}
+
+/**
+ * Updates the cursor position on the screen
+ *
+ * @param pos The 16-bit (row * VGA_WIDTH + column) position to update the cursor.
+ */
+inline void vga_update_cursor(uint16_t pos) {
+    /* Moving the cursor of the vga is done via two different I/O ports.
+    * The cursor’s position is determined with a 16 bits integer:
+    *     0 means row zero, column zero;
+    *     1 means row zero, column one;
+    *     80 means row one, column zero and so on.
+    *
+    * Since the position is 16 bits large, and the out assembly code instruction argument is 8 bits,
+    * the position must be sent in two turns, first 8 bits then the next 8 bits.
+    *
+    * The VGA has two I/O ports, one for accepting the data, and one for describing the data being received.
+    * VGA_COMMAND_PORT is the port that describes the data and port VGA_DATA_PORT is for the data itself */
+    outb(VGA_COMMAND_PORT, VGA_HIGH_BYTE_COMMAND);
+    outb(VGA_DATA_PORT, (uint8_t) (pos >> 8) & 0xFF);
+    outb(VGA_COMMAND_PORT, VGA_LOW_BYTE_COMMAND);
+    outb(VGA_DATA_PORT, (uint8_t) (pos & 0xFF));
 }
 
 #endif
