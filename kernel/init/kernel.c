@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stddef.h>
 
 #include <kernel/tty.h>
 
@@ -23,4 +24,9 @@ void kernel_main(void) {
 	int *ptr = &x;
 	printf("Address of x: %p\n", (void*)ptr);
 	printf("Address of ptr: %p\n", (void*)&ptr);
+
+	// Terminal Scroll Test
+	for (size_t i = 0; i < 40; i++) {
+		printf("Line: %d\n", i);
+	}
 }

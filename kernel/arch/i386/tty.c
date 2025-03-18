@@ -48,41 +48,88 @@ void terminal_setcolor(uint8_t color) {
 /**
  * Puts a character at a specific position in the terminal
  *
- * @param c 	Character to display
+ * @param c     Character to display
  * @param color Color attribute for this character
- * @param x 	Column position (0 to VGA_WIDTH - 1)
- * @param y 	Row position (0 to VGA_HEIGHT - 1)
+ * @param x     Column position (0 to VGA_WIDTH - 1)
+ * @param y     Row position (0 to VGA_HEIGHT - 1)
  */
 void terminal_putentryat(unsigned char c, uint8_t color, size_t x, size_t y) {
     const size_t index = y * VGA_WIDTH + x;
     terminal_buffer[index] = vga_entry(c, color);
-    vga_update_cursor((uint16_t)index);
+}
+
+/**
+ * Scrolls the terminal up by one line
+ * Moves all content up and clears the bottom line
+ */
+void terminal_scroll() {
+    // Move all lines up one position
+    for (size_t y = 1; y < VGA_HEIGHT; y++) {
+        for (size_t x = 0; x < VGA_WIDTH; x++) {
+            terminal_buffer[(y - 1) * VGA_WIDTH + x] = terminal_buffer[y * VGA_WIDTH + x];
+        }
+    }
+
+    // Clear the last line
+    for (size_t x = 0; x < VGA_WIDTH; x++) {
+        terminal_buffer[(VGA_HEIGHT - 1) * VGA_WIDTH + x] = vga_entry(' ', terminal_color);
+    }
+}
+
+/**
+ * Check if terminal needs to scroll and handle it
+ */
+void terminal_check_scroll() {
+    if (terminal_row == VGA_HEIGHT) {
+        terminal_scroll();
+        terminal_row = VGA_HEIGHT - 1;
+    }
+}
+
+/**
+ * Handles a newline character by moving to the next line
+ * and handling scrolling if needed
+ */
+void terminal_handle_newline() {
+    terminal_column = 0;
+    terminal_row++;
+    terminal_check_scroll();
+    const uint16_t index = terminal_row * VGA_WIDTH + terminal_column;
+    vga_update_cursor(index);
+}
+
+/**
+ * Advances the cursor after writing a character,
+ * handling line wrapping and scrolling if needed
+ */
+void terminal_advance_cursor() {
+    if (++terminal_column == VGA_WIDTH) {
+        terminal_column = 0;
+        terminal_row++;
+        terminal_check_scroll();
+    }
+    const uint16_t index = terminal_row * VGA_WIDTH + terminal_column;
+    vga_update_cursor(index);
 }
 
 /**
  * Writes a character to the terminal at current cursor position
  *
- * Handles basic cursor advancement and wrapping:
+ * Handles basic cursor advancement, wrapping, and scrolling:
  * - Processes '\n' as a newline (advances row, resets column)
  * - Moves to next line when reaching end of current line
- * - Wraps back to top when reaching bottom of screen
+ * - Scrolls the screen when reaching bottom
  *
  * @param c Character to write
  */
 void terminal_putchar(char c) {
     unsigned char uc = c;
     if (uc == '\n') {
-        terminal_row++;
-        terminal_column = 0;
+        terminal_handle_newline();
     }
     else {
         terminal_putentryat(uc, terminal_color, terminal_column, terminal_row);
-        if (++terminal_column == VGA_WIDTH) {
-            terminal_column = 0;
-            if (++terminal_row == VGA_HEIGHT) {
-                terminal_row = 0;
-            }
-        }
+        terminal_advance_cursor();
     }
 }
 
