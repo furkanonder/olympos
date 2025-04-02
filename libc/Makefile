@@ -42,6 +42,7 @@ LIBK_CPPFLAGS:=$(LIBK_CPPFLAGS) $(KERNEL_ARCH_CPPFLAGS)
 # Freestanding objects (don't require hosted environment)
 FREEOBJS=\
 $(ARCH_FREEOBJS) \
+assert/assert.o \
 stdio/printf.o \
 stdio/putchar.o \
 stdio/puts.o \
