@@ -175,6 +175,47 @@ int printf(const char* restrict format, ...) {
             }
             written += len;
         }
+        /* Handle long formats: %ld, %lu, and %lx */
+        else if (*format == 'l' && (*(format + 1) == 'd' || *(format + 1) == 'u' || *(format + 1) == 'x')) {
+            char num_str[32];
+            int base = 10;  /* Default base for decimal */
+
+            /* Get format type */
+            char type = *(format + 1);
+            format += 2;  /* Skip both 'l' and the type char */
+
+            /* Hexadecimal unsigned long */
+            if (type == 'x') {
+                base = 16;
+                unsigned long ul = va_arg(parameters, unsigned long);
+                itoa(ul, num_str, base);
+            }
+            /* Signed long */
+            else if (type == 'd') {
+                long l = va_arg(parameters, long);
+                itoa(l, num_str, base);
+            }
+            /* Unsigned long */
+            else {
+                unsigned long ul = va_arg(parameters, unsigned long);
+                itoa(ul, num_str, base);
+            }
+
+            /* Calculate string length */
+            size_t len = strlen(num_str);
+
+            /* Check for potential integer overflow */
+            if (maxrem < len) {
+                // TODO: Set errno to EOVERFLOW.
+                return -1;
+            }
+
+            /* Print the number */
+            if (!print(num_str, len)) {
+                return -1;
+            }
+            written += len;
+        }
         /* Handle unrecognized format specifier */
         else {
             /* Reset to the beginning of the format specifier */
