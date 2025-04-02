@@ -51,15 +51,18 @@ _start:
 	; in assembly as languages such as C cannot function without a stack.
     mov esp, stack_top
 
+    ; Save multiboot info
+    mov edi, eax  ; Save magic
+    mov esi, ebx  ; Save info pointer
+
     ; Call global constructors
     call _init
 
-	; Enter the high-level kernel. The ABI requires the stack is 16-byte
-	; aligned at the time of the call instruction (which afterwards pushes
-	; the return pointer of size 4 bytes). The stack was originally 16-byte
-	; aligned above and we've since pushed a multiple of 16 bytes to the
-	; stack since (pushed 0 bytes so far) and the alignment is thus
-	; preserved and the call is well defined.
+    ; Pass two arguments to 'kernel_main', last -> first.
+    push esi  ; Push pointer to multiboot info.
+    push edi  ; Push bootloader magic number.
+
+    ; Jump to the 'kernel_main' function
     call kernel_main
 
 	; If the system has nothing more to do, put the computer into an
