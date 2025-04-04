@@ -27,11 +27,6 @@ void kernel_main(unsigned long magic, unsigned long addr) {
     printf("Address of x: %p\n", (void*)ptr);
     printf("Address of ptr: %p\n", (void*)&ptr);
 
-    // Terminal Scroll Test
-    for (size_t i = 0; i < 40; i++) {
-        printf("Line: %d\n", i);
-    }
-
     long int ld_val = 1234567890;
     printf("Long Integer (ld): %ld\n", ld_val);
     unsigned long int lu_val = 1234567890;
@@ -39,9 +34,17 @@ void kernel_main(unsigned long magic, unsigned long addr) {
     unsigned long int lx_val = 1234567890;
     printf("Unsigned Long Integer in Hex (lx): %lx\n", lx_val);
 
+    unsigned int hex_val = 0xff;
+    printf("Hexadecimal (x): 0x%x\n", hex_val);
+
     // Test the assert
     int w = 5, y = 33;
     assert((w + y) > 50 && "Sum is not greater than 50");
+
+    // Terminal Scroll Test
+    for (size_t i = 0; i < 40; i++) {
+        printf("Line: %d\n", i);
+    }
 
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
         panic("Invalid bootloader magic %lx\n", magic);

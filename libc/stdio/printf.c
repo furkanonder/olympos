@@ -175,6 +175,31 @@ int printf(const char* restrict format, ...) {
             }
             written += len;
         }
+        /* Handle %x format specifier (hexadecimal) */
+        else if (*format == 'x') {
+            format++;
+            /* Get the unsigned integer argument */
+            unsigned int x = va_arg(parameters, unsigned int);
+
+            /* Convert to hexadecimal string */
+            char hex_str[32];
+            itoa(x, hex_str, 16);
+
+            /* Calculate string length */
+            size_t len = strlen(hex_str);
+
+            /* Check for potential integer overflow */
+            if (maxrem < len) {
+                // TODO: Set errno to EOVERFLOW.
+                return -1;
+            }
+
+            /* Print the hexadecimal */
+            if (!print(hex_str, len)) {
+                return -1;
+            }
+            written += len;
+        }
         /* Handle long formats: %ld, %lu, and %lx */
         else if (*format == 'l' && (*(format + 1) == 'd' || *(format + 1) == 'u' || *(format + 1) == 'x')) {
             char num_str[32];
