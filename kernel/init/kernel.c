@@ -37,6 +37,10 @@ void kernel_main(unsigned long magic, unsigned long addr) {
     unsigned int hex_val = 0xff;
     printf("Hexadecimal (x): 0x%x\n", hex_val);
 
+    size_t size_val = 123456;
+    printf("Size_t value with %%zu: %zu\n", size_val);
+    printf("Size_t value with %%zd: %zd\n", -size_val);
+
     // Test the assert
     int w = 5, y = 33;
     assert((w + y) > 50 && "Sum is not greater than 50");

@@ -241,6 +241,33 @@ int printf(const char* restrict format, ...) {
             }
             written += len;
         }
+        /* Handle %z format specifier (size_t) */
+        else if (*format == 'z' && (*(format + 1) == 'u' || *(format + 1) == 'd')) {
+            char num_str[32];
+            char type = *(format + 1);
+            format += 2;  /* Skip both 'z' and the type char */
+
+            /* Get the size_t argument */
+            size_t z = va_arg(parameters, size_t);
+
+            /* Convert to string */
+            itoa(z, num_str, 10);
+
+            /* Calculate string length */
+            size_t len = strlen(num_str);
+
+            /* Check for potential integer overflow */
+            if (maxrem < len) {
+                // TODO: Set errno to EOVERFLOW.
+                return -1;
+            }
+
+            /* Print the number */
+            if (!print(num_str, len)) {
+                return -1;
+            }
+            written += len;
+        }
         /* Handle unrecognized format specifier */
         else {
             /* Reset to the beginning of the format specifier */
