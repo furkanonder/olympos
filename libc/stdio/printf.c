@@ -26,12 +26,20 @@ static bool print(const char* data, size_t length) {
  * Writes formatted output to stdout
  *
  * Supports the following format specifiers:
- * - %c: Character
- * - %s: String
+ * - %c:  Character
+ * - %s:  String
+ * - %d:  Signed integer
+ * - %p:  Pointer (prefixed with 0x)
+ * - %x:  Unsigned integer in hexadecimal
+ * - %ld: Long signed integer
+ * - %lu: Long unsigned integer
+ * - %lx: Long unsigned integer in hexadecimal
+ * - %zu: Size_t as unsigned
+ * - %zd: Size_t as signed decimal
  *
- * @param format 	Format string containing text and format specifiers
- * @param ... 		Variable arguments corresponding to format specifiers
- * @return 			Number of characters printed, or -1 on error
+ * @param format    Format string containing text and format specifiers
+ * @param ...       Variable arguments corresponding to format specifiers
+ * @return          Number of characters printed, or -1 on error
  */
 int printf(const char* restrict format, ...) {
     va_list parameters;
@@ -244,7 +252,6 @@ int printf(const char* restrict format, ...) {
         /* Handle %z format specifier (size_t) */
         else if (*format == 'z' && (*(format + 1) == 'u' || *(format + 1) == 'd')) {
             char num_str[32];
-            char type = *(format + 1);
             format += 2;  /* Skip both 'z' and the type char */
 
             /* Get the size_t argument */
