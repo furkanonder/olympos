@@ -19,10 +19,11 @@ BOOTDIR?=$(EXEC_PREFIX)/boot  		# Boot files directory
 INCLUDEDIR?=$(PREFIX)/include 		# Header files directory
 
 # Add kernel-specific compiler flags
-CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra
+CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra -fno-omit-frame-pointer
 # -ffreestanding: Compile for freestanding environment (no standard library)
 # -Wall: Enable all common warnings
 # -Wextra: Enable extra warnings
+# -fno-omit-frame-pointer: Preserve frame pointers for reliable stack traces
 
 # Add kernel-specific preprocessor flags
 CPPFLAGS:=$(CPPFLAGS) -D__is_kernel -Iinclude

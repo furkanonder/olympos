@@ -11,6 +11,7 @@ void __assert_fail(const char *expr, const char *file, unsigned int line, const 
 #define panic(fmt, ...) do {                                \
     asm volatile("cli");                                    \
     printf("Kernel panic: " fmt "\n", ##__VA_ARGS__);       \
+    print_backtrace();                                      \
     while (1) {                                             \
         asm volatile("hlt");                                \
     }                                                       \
