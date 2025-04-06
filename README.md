@@ -14,6 +14,9 @@ sudo pacman -S gcc make nasm
 
 # For creating and running ISO
 sudo pacman -S mtools xorriso grub qemu
+
+# For debugging
+sudo pacman -S gdb
 ```
 
 For other distributions, install the equivalent packages using your package manager.
@@ -56,6 +59,12 @@ To run Olympos in QEMU:
 ./qemu.sh
 ```
 
+## Debugging
+Olympos includes support for debugging the kernel with GDB:
+```bash
+./debug.sh
+```
+
 ## Build System Scripts
 
 - `build.sh`: Main build script
@@ -64,8 +73,8 @@ To run Olympos in QEMU:
 - `headers.sh`: Install system headers
 - `iso.sh`: Create bootable ISO
 - `qemu.sh`: Run OS in QEMU
+- `debug.sh`: Run OS in QEMU with GDB attached
 
 ## License
 
 The GNU General Public License v3.0
-
