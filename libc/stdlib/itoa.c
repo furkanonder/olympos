@@ -13,7 +13,7 @@
  *                   16 hexadecimal, 8 octal, and 2 binary.
  *  @return          A pointer to the resulting null-terminated string, same as parameter str.
  */
-char *itoa(int value, char *str, int base) {
+char* itoa(int value, char* str, int base) {
     // Check that the base if valid
     if (base < 2 || base > 36) {
         *str = '\0';

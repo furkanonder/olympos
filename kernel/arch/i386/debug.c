@@ -10,9 +10,9 @@
 #include "include/elf32.h"
 
 /* Global symbol information */
-static Elf32_Sym_t *symbol_table = NULL;
+static Elf32_Sym_t* symbol_table = NULL;
 static size_t symbol_count = 0;
-static const char *string_table = NULL;
+static const char* string_table = NULL;
 static size_t string_table_size = 0;
 static int debug_initialized = 0;
 
@@ -78,7 +78,7 @@ static uint32_t get_function_base_address(uint32_t addr) {
  */
 void print_backtrace(void) {
     /* Get the current frame pointer */
-    uint32_t *frame_ptr;
+    uint32_t* frame_ptr;
     asm volatile ("movl %%ebp, %0" : "=r" (frame_ptr));
 
     printf("Stack backtrace:\n");
@@ -86,7 +86,8 @@ void print_backtrace(void) {
 
     /* Track addresses to detect cycles */
     uint32_t prev_return_addr = 0;
-    uint32_t max_frames = 32;  /* Reasonable limit to prevent infinite loops */
+    /* Reasonable limit to prevent infinite loops */
+    uint32_t max_frames = 32;
 
     while (frame_ptr != NULL && frame_count < max_frames) {
         /* Get return address from stack frame */
@@ -117,7 +118,6 @@ void print_backtrace(void) {
         frame_count++;
     }
 
-    /* Handle edge cases */
     if (frame_count == 0) {
         printf("  No stack frames found\n");
     }
@@ -137,7 +137,7 @@ void print_backtrace(void) {
  */
 static Elf32_Shdr_t* find_section(Elf32_Shdr_t *sht, size_t sht_len, const char *sh_names, const char *name) {
     for (size_t i = 0; i < sht_len; i++) {
-        const char *section_name = sh_names + sht[i].sh_name;
+        const char* section_name = sh_names + sht[i].sh_name;
         if (strcmp(section_name, name) == 0) {
             return &sht[i];
         }
@@ -158,7 +158,7 @@ void debug_initialize(multiboot_info_t *mbi) {
     }
 
     /* Access the ELF section header table */
-    Elf32_Shdr_t *sht = (Elf32_Shdr_t*) mbi->u.elf_sec.addr;
+    Elf32_Shdr_t* sht = (Elf32_Shdr_t*) mbi->u.elf_sec.addr;
     size_t sht_len = mbi->u.elf_sec.num;
 
     /* Make sure the section header string index is valid */
@@ -168,10 +168,10 @@ void debug_initialize(multiboot_info_t *mbi) {
     }
 
     /* Get the section header string table */
-    const char *sh_names = (const char*) sht[mbi->u.elf_sec.shndx].sh_addr;
+    const char* sh_names = (const char*) sht[mbi->u.elf_sec.shndx].sh_addr;
 
     /* Find the symbol table */
-    Elf32_Shdr_t *symtab_hdr = find_section(sht, sht_len, sh_names, ".symtab");
+    Elf32_Shdr_t* symtab_hdr = find_section(sht, sht_len, sh_names, ".symtab");
     if (symtab_hdr) {
         symbol_table = (Elf32_Sym_t*) symtab_hdr->sh_addr;
         symbol_count = symtab_hdr->sh_size / sizeof(Elf32_Sym_t);
@@ -181,7 +181,7 @@ void debug_initialize(multiboot_info_t *mbi) {
     }
 
     /* Find the string table */
-    Elf32_Shdr_t *strtab_hdr = find_section(sht, sht_len, sh_names, ".strtab");
+    Elf32_Shdr_t* strtab_hdr = find_section(sht, sht_len, sh_names, ".strtab");
     if (strtab_hdr) {
         string_table = (const char*) strtab_hdr->sh_addr;
         string_table_size = strtab_hdr->sh_size;

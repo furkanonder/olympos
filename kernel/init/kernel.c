@@ -116,6 +116,10 @@ void run_test_suite(bool run_safe_only) {
  * Kernel entry point
  */
 void kernel_main(unsigned long magic, unsigned long addr) {
+    assert(magic == MULTIBOOT_BOOTLOADER_MAGIC && "Invalid bootloader magic");
+    multiboot_info_t* mbi = (multiboot_info_t*) addr;
+    debug_initialize(mbi);
+
     terminal_initialize();
 
     // Print welcome message
@@ -123,14 +127,6 @@ void kernel_main(unsigned long magic, unsigned long addr) {
     printf("Welcome to Olympos OS v0.1\n");
     printf("An experimental 32-bit Operating System\n");
     printf("=======================================\n");
-
-    if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
-        multiboot_info_t *mbi = (multiboot_info_t*)addr;
-        debug_initialize(mbi);
-    }
-    else {
-        panic("Invalid bootloader magic: 0x%lx\n", magic);
-    }
 
     // Run test suite with only safe tests
     // Change to false to run all tests including ones that may crash

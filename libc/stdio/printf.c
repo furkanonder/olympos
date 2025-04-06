@@ -167,7 +167,7 @@ int printf(const char* restrict format, ...) {
             /* Convert pointer to hexadecimal string */
             char ptr_str[32];
             /* Cast to unsigned long to ensure proper size */
-            itoa((unsigned long)ptr, ptr_str, 16);
+            itoa((unsigned long) ptr, ptr_str, 16);
 
             size_t len = strlen(ptr_str);
 
@@ -252,7 +252,8 @@ int printf(const char* restrict format, ...) {
         /* Handle %z format specifier (size_t) */
         else if (*format == 'z' && (*(format + 1) == 'u' || *(format + 1) == 'd')) {
             char num_str[32];
-            format += 2;  /* Skip both 'z' and the type char */
+            /* Skip both 'z' and the type char */
+            format += 2;
 
             /* Get the size_t argument */
             size_t z = va_arg(parameters, size_t);

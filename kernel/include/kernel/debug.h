@@ -10,7 +10,7 @@
  *
  * @param mbi Pointer to multiboot information structure
  */
-void debug_initialize(multiboot_info_t *mbi);
+void debug_initialize(multiboot_info_t* mbi);
 
 /**
  * Print a backtrace of the current call stack
@@ -25,4 +25,4 @@ void print_backtrace(void);
  */
 const char* find_symbol_for_address(uint32_t addr);
 
-#endif /* _KERNEL_DEBUG_H */
+#endif
