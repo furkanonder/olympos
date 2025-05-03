@@ -6,6 +6,7 @@
 #include <kernel/tty.h>
 #include <kernel/multiboot.h>
 #include <kernel/debug.h>
+#include <kernel/serial.h>
 
 /**
  * Test assertion functionality
@@ -121,12 +122,15 @@ void kernel_main(unsigned long magic, unsigned long addr) {
     debug_initialize(mbi);
 
     terminal_initialize();
-
     // Print welcome message
     printf("=======================================\n");
     printf("Welcome to Olympos OS v0.1\n");
     printf("An experimental 32-bit Operating System\n");
     printf("=======================================\n");
+
+    // Test serial driver
+    serial_initialize(SERIAL_COM1_BASE, SERIAL_BAUD_115200);
+    serial_write_string(SERIAL_COM1_BASE, "Serial Test\n");
 
     // Run test suite with only safe tests
     // Change to false to run all tests including ones that may crash

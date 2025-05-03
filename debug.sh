@@ -3,9 +3,11 @@ set -e
 . ./iso.sh
 
 # Start QEMU with debugging capabilities in the background
+# -cdrom olympos.iso: Boot from the Olympos ISO image
+# -serial file:serial.log: Redirect serial port output to a log file
 # -s: Shorthand for -gdb tcp::1234 (starts GDB server on port 1234)
 # -S: Pause CPU at startup (wait for debugger to connect and continue)
-qemu-system-$(./target-triplet-to-arch.sh $HOST) -cdrom olympos.iso -s -S & QEMU_PID=$!
+qemu-system-$(./target-triplet-to-arch.sh $HOST) -cdrom olympos.iso -serial file:serial.log -s -S & QEMU_PID=$!
 
 # Give QEMU a moment to start
 sleep 1
