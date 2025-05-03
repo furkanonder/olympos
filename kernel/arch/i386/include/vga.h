@@ -59,8 +59,8 @@ enum vga_color {
  * @return      Combined color attribute byte
  *
  * Bit layout:
- * Bit:     | 7 6 5 4  | 3 2 1 0 |
- * Content: | BG color | FG color|
+ * Bit:     |  7 6 5 4  |  3 2 1 0  |
+ * Content: |  BG color |  FG color |
  */
 static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg) {
     return fg | bg << 4;
@@ -71,7 +71,7 @@ static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg) {
  *
  * @param uc    ASCII character to display
  * @param color Color attribute from vga_entry_color
- * @return		16-bit VGA character entry combining character and colors
+ * @return      16-bit VGA character entry combining character and colors
  *
  * Bit layout:
  * Bit:     | 15 14 13 12 | 11 10 9 8 | 7 6 5 4 3 2 1 0 |
@@ -86,22 +86,59 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
  *
  * @param pos The 16-bit (row * VGA_WIDTH + column) position to update the cursor.
  */
-inline void vga_update_cursor(uint16_t pos) {
+static inline void vga_update_cursor(uint16_t pos) {
     /* Moving the cursor of the vga is done via two different I/O ports.
-    * The cursor’s position is determined with a 16 bits integer:
-    *     0 means row zero, column zero;
-    *     1 means row zero, column one;
-    *     80 means row one, column zero and so on.
-    *
-    * Since the position is 16 bits large, and the out assembly code instruction argument is 8 bits,
-    * the position must be sent in two turns, first 8 bits then the next 8 bits.
-    *
-    * The VGA has two I/O ports, one for accepting the data, and one for describing the data being received.
-    * VGA_COMMAND_PORT is the port that describes the data and port VGA_DATA_PORT is for the data itself */
+     * The cursor's position is determined with a 16 bits integer:
+     *     0 means row zero, column zero;
+     *     1 means row zero, column one;
+     *     80 means row one, column zero and so on.
+     *
+     * Since the position is 16 bits large, and the out assembly code instruction argument is 8 bits,
+     * the position must be sent in two turns, first 8 bits then the next 8 bits.
+     *
+     * The VGA has two I/O ports, one for accepting the data, and one for describing the data being received.
+     * VGA_COMMAND_PORT is the port that describes the data and port VGA_DATA_PORT is for the data itself.
+    */
     outb(VGA_COMMAND_PORT, VGA_HIGH_BYTE_COMMAND);
     outb(VGA_DATA_PORT, (uint8_t) (pos >> 8) & 0xFF);
     outb(VGA_COMMAND_PORT, VGA_LOW_BYTE_COMMAND);
     outb(VGA_DATA_PORT, (uint8_t) (pos & 0xFF));
 }
+
+/* VGA driver functions */
+
+/**
+ * Initialize VGA hardware
+ *
+ * Sets up the VGA text mode display:
+ * - Clears the screen with light grey on black
+ * - Resets cursor to top-left position (0, 0)
+ */
+void vga_initialize(void);
+
+/**
+ * Write a character at a specific position on screen
+ *
+ * @param c     Character to write
+ * @param color Combined foreground/background color attribute
+ * @param x     Column position (0 to VGA_WIDTH - 1)
+ * @param y     Row position (0 to VGA_HEIGHT - 1)
+ */
+void vga_write_char_at(unsigned char c, uint8_t color, size_t x, size_t y);
+
+/**
+ * Update the cursor to a specific position
+ *
+ * @param pos New cursor position (row * VGA_WIDTH + column)
+ */
+void vga_update_cursor_position(uint16_t pos);
+
+/**
+ * Scroll the screen content up by one line
+ *
+ * Moves all lines up one position and clears the bottom line.
+ * Used when terminal output reaches the bottom of the screen.
+ */
+void vga_scroll(void);
 
 #endif
