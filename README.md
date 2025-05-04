@@ -65,6 +65,20 @@ Olympos includes support for debugging the kernel with GDB:
 ./debug.sh
 ```
 
+## Testing
+
+Olympos includes a comprehensive integration test framework that runs tests in QEMU and verifies output
+through the serial port.
+
+### Quick Start
+
+To run all tests:
+```bash
+./test.sh
+```
+
+For more information, see the [test framework documentation](tests/README.md).
+
 ## Build System Scripts
 
 - `build.sh`: Main build script

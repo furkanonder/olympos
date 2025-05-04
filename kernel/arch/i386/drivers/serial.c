@@ -138,7 +138,7 @@ void serial_initialize(uint16_t port, uint16_t baud_divisor) {
         printf("Serial port initialization successful!\n");
         printf("Serial port: 0x%x, Serial Baud Rate: %d\n", port, 115200 / baud_divisor);
         serial_write_string(port, "=======================================\n");
-        serial_write_string(port, "Olympos OS Serial Debug Output\n");
+        serial_write_string(port, "Olympos Serial Debug Output\n");
         serial_write_string(port, "=======================================\n\n");
     }
     else {
