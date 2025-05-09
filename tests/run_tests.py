@@ -47,9 +47,11 @@ def main():
     parser = argparse.ArgumentParser(description="Olympos Test Runner")
     parser.add_argument("tests", nargs="*", help="Tests to run")
     parser.add_argument("--list", action="store_true", help="List all available tests")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Show build output")
     args = parser.parse_args()
 
     framework = OlymposTestFramework()
+    framework.set_verbose(args.verbose)
 
     # Register all tests
     register_serial_tests(framework)

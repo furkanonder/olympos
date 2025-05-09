@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+from collections import Counter
 from typing import Any, Dict
 
 
@@ -8,9 +9,14 @@ class OlymposTestFramework:
     def __init__(self):
         self.tests = []
         self.results = []
+        self.verbose = False
         # Determine if we're in the test directory or root
         self.in_test_dir = os.path.basename(os.getcwd()) == "test"
         self.root_dir = ".." if self.in_test_dir else "."
+
+    def set_verbose(self, verbose):
+        """Set verbose output mode"""
+        self.verbose = verbose
 
     def get_path(self, path):
         """Get the correct path based on the current directory"""
@@ -59,12 +65,23 @@ class OlymposTestFramework:
                 f.write("done\n")
             os.chmod(build_script, 0o755)
 
-            build_cmd = f"cd {self.root_dir} && ./build-test.sh"
+            # Build the kernel
+            if self.verbose:
+                print("Building kernel...")
+                build_cmd = f"cd {self.root_dir} && ./build-test.sh"
+            else:
+                build_cmd = f"cd {self.root_dir} && ./build-test.sh > /dev/null 2>&1"
+
             if os.system(build_cmd) != 0:
-                print("Build failed!")
                 return False
 
-            iso_cmd = f"cd {self.root_dir} && ./iso.sh"
+            # Create ISO
+            if self.verbose:
+                print("Creating ISO...")
+                iso_cmd = f"cd {self.root_dir} && ./iso.sh"
+            else:
+                iso_cmd = f"cd {self.root_dir} && ./iso.sh > /dev/null 2>&1"
+
             if os.system(iso_cmd) != 0:
                 print("ISO creation failed!")
                 return False
@@ -94,7 +111,12 @@ class OlymposTestFramework:
         with open(grub_cfg_path, "w") as f:
             f.write(grub_config)
 
-        iso_cmd = f"cd {self.root_dir} && grub-mkrescue -o olympos-test.iso isodir-test"
+        if self.verbose:
+            print("Creating test ISO...")
+            iso_cmd = f"cd {self.root_dir} && grub-mkrescue -o olympos-test.iso isodir-test"
+        else:
+            iso_cmd = f"cd {self.root_dir} && grub-mkrescue -o olympos-test.iso isodir-test > /dev/null 2>&1"
+
         os.system(iso_cmd)
 
     def run_qemu(self) -> tuple[int, str]:
@@ -116,48 +138,54 @@ class OlymposTestFramework:
         return result.returncode, output
 
     def run_test(self, test: Dict[str, Any]) -> bool:
-        print(f"\nRunning test: {test['name']}")
-        print("-" * 40)
-
+        """Run a single test"""
+        test_name = test["name"]
         self.backup_kernel()
+        output = ""
+        success = False
+
         try:
             if not self.create_test_kernel(test["code"]):
+                self.results.append({"name": test_name, "passed": False, "output": ""})
                 return False
-
             self.setup_test_iso()
             return_code, output = self.run_qemu()
-            expected_exit_code = 1
-            success = return_code == expected_exit_code and test["expected"] in output
+            success = return_code == 1 and test["expected"] in output
 
-            print(f"Output: {output[:500]}...")
-            if success:
-                print(f"✓ Test {test['name']} PASSED")
-            else:
-                print(f"✗ Test {test['name']} FAILED")
+            if self.verbose:
+                print(f"Test Output:\n{output}")
                 if test["expected"] not in output:
-                    print(f"  Expected output '{test['expected']}' not found")
-
-            self.results.append({"name": test["name"], "passed": success, "output": output, "returncode": return_code})
-            return success
+                    print(f"Expected output:\n'{test['expected']}'")
+        except Exception as e:
+            print(f"run_test failed - {e}")
         finally:
             self.restore_kernel()
 
-    def run_all_tests(self):
-        print("=== Running Olympos Tests ===\n")
+        self.results.append({"name": test_name, "passed": success, "output": output})
+        return success
 
-        for test in self.tests:
-            self.run_test(test)
+
+    def run_all_tests(self):
+        total_test_count = len(self.tests)
+        print(f"=== Running {total_test_count} Tests ===")
+
+        for i, test in enumerate(self.tests, 1):
+            result = self.run_test(test)
+            result_message = "PASSED" if result else "FAILED"
+            print(f"[{i}/{total_test_count}] {test['name']}: {result_message}")
 
         print("\n=== Test Summary ===")
-        passed = sum(1 for r in self.results if r["passed"])
-        total = len(self.results)
+        status_counter = Counter(r["passed"] for r in self.results)
+        passed, failed = status_counter[True], status_counter[False]
+        print(f"Passed: {passed}/{total_test_count} ({passed/total_test_count*100:.1f}%)")
 
-        print(f"Passed: {passed}/{total}")
-        for result in self.results:
-            status = "✓ PASS" if result["passed"] else "✗ FAIL"
-            print(f"{status}: {result['name']}")
+        if failed:
+            print("\nFailed Tests:")
+            for result in self.results:
+                if not result["passed"]:
+                    print(f"  - {result['name']}")
 
-        return passed == total
+        return passed == total_test_count
 
     def cleanup(self):
         files_to_remove = [self.get_path("olympos-test.iso"), self.get_path("build-test.sh")]
