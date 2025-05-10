@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from test_framework import OlymposTestFramework
 from test_printf import register_printf_tests
 from test_serial import register_serial_tests
+from test_assert import register_assert_tests
 
 
 def list_tests(framework):
@@ -56,6 +57,7 @@ def main():
     # Register all tests
     register_serial_tests(framework)
     register_printf_tests(framework)
+    register_assert_tests(framework)
 
     if args.list:
         list_tests(framework)

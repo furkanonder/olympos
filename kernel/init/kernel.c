@@ -9,28 +9,6 @@
 #include <kernel/serial.h>
 
 /**
- * Test assertion functionality
- * Note: Will trigger kernel panic on failed assertion
- */
-void test_assertions() {
-    printf("\n=== Testing Assertions ===\n");
-
-    int w = 5, y = 33;
-    printf("Asserting that %d + %d > 30... ", w, y);
-    assert((w + y) > 30 && "Sum is not greater than 30");
-    printf("Passed!\n");
-
-    printf("Asserting that %d + %d > 38... ", w, y);
-    assert((w + y) > 38 && "Sum is not greater than 38");
-    printf("Passed!\n");
-
-    // This should fail and trigger a panic
-    printf("Asserting that %d + %d > 50... ", w, y);
-    assert((w + y) > 50 && "Sum is not greater than 50");
-    printf("Passed! (You should not see this message)\n");
-}
-
-/**
  * Test terminal scrolling functionality
  */
 void test_scroll_functionality() {
