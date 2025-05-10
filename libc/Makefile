@@ -46,6 +46,8 @@ assert/assert.o \
 stdio/printf.o \
 stdio/putchar.o \
 stdio/puts.o \
+stdio/snprintf.o \
+stdio/vsnprintf.o \
 stdlib/abort.o \
 stdlib/itoa.o \
 string/memcmp.o \
