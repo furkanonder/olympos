@@ -8,19 +8,6 @@
 #include <kernel/debug.h>
 #include <kernel/serial.h>
 
-/**
- * Test terminal scrolling functionality
- */
-void test_scroll_functionality() {
-    printf("\n=== Testing Terminal Scrolling ===\n");
-
-    // Generate enough lines to test scrolling behavior
-    for (size_t i = 0; i < 30; i++) {
-        printf("Scroll test line %zu of 30\n", i + 1);
-    }
-
-    printf("Scroll test complete\n");
-}
 
 /**
  * Kernel entry point
@@ -31,6 +18,7 @@ void kernel_main(unsigned long magic, unsigned long addr) {
     debug_initialize(mbi);
 
     terminal_initialize();
+
     printf("=======================================\n");
     printf("Welcome to Olympos\n");
     printf("An experimental 32-bit Operating System\n");

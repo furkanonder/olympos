@@ -10,6 +10,7 @@ from test_framework import OlymposTestFramework
 from test_printf import register_printf_tests
 from test_serial import register_serial_tests
 from test_assert import register_assert_tests
+from test_terminal import register_terminal_tests
 
 
 def list_tests(framework):
@@ -58,6 +59,7 @@ def main():
     register_serial_tests(framework)
     register_printf_tests(framework)
     register_assert_tests(framework)
+    register_terminal_tests(framework)
 
     if args.list:
         list_tests(framework)
