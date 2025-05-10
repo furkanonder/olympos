@@ -15,21 +15,17 @@ class OlymposTestFramework:
         self.root_dir = ".." if self.in_test_dir else "."
 
     def set_verbose(self, verbose):
-        """Set verbose output mode"""
         self.verbose = verbose
 
     def get_path(self, path):
-        """Get the correct path based on the current directory"""
         if self.in_test_dir:
             return os.path.join(self.root_dir, path)
         return path
 
     def register_test(self, name: str, test_code: str, expected_output: str):
-        """Register a test case"""
         self.tests.append({"name": name, "code": test_code, "expected": expected_output})
 
     def backup_kernel(self):
-        """Backup original kernel"""
         kernel_path = self.get_path("kernel/init/kernel.c")
         backup_path = f"{kernel_path}.bak"
         if os.path.exists(backup_path):
@@ -37,14 +33,12 @@ class OlymposTestFramework:
         shutil.copy2(kernel_path, backup_path)
 
     def restore_kernel(self):
-        """Restore original kernel"""
         kernel_path = self.get_path("kernel/init/kernel.c")
         backup_path = f"{kernel_path}.bak"
         if os.path.exists(backup_path):
             shutil.move(backup_path, kernel_path)
 
     def create_test_kernel(self, test_code: str) -> bool:
-        """Create test kernel with given code"""
         try:
             kernel_path = self.get_path("kernel/init/kernel.c")
             with open(kernel_path, "w") as f:
@@ -65,25 +59,12 @@ class OlymposTestFramework:
                 f.write("done\n")
             os.chmod(build_script, 0o755)
 
-            # Build the kernel
             if self.verbose:
                 print("Building kernel...")
                 build_cmd = f"cd {self.root_dir} && ./build-test.sh"
             else:
                 build_cmd = f"cd {self.root_dir} && ./build-test.sh > /dev/null 2>&1"
-
             if os.system(build_cmd) != 0:
-                return False
-
-            # Create ISO
-            if self.verbose:
-                print("Creating ISO...")
-                iso_cmd = f"cd {self.root_dir} && ./iso.sh"
-            else:
-                iso_cmd = f"cd {self.root_dir} && ./iso.sh > /dev/null 2>&1"
-
-            if os.system(iso_cmd) != 0:
-                print("ISO creation failed!")
                 return False
 
             return True
@@ -91,33 +72,41 @@ class OlymposTestFramework:
             print(f"Error creating test kernel: {e}")
             return False
 
-    def setup_test_iso(self):
-        grub_config = """
-        set timeout=0
-        set default=0
-        menuentry "olympos-test" {
-            multiboot /boot/olympos.kernel
-            boot
-        }
-        """
-        isodir_path = self.get_path("isodir")
-        isodir_test_path = self.get_path("isodir-test")
+    def create_test_iso(self) -> bool:
+        try:
+            # Create directory structure
+            isodir_test_path = self.get_path("isodir-test")
+            boot_path = os.path.join(isodir_test_path, "boot")
+            grub_path = os.path.join(boot_path, "grub")
+            os.makedirs(grub_path, exist_ok=True)
 
-        if os.path.exists(isodir_test_path):
-            shutil.rmtree(isodir_test_path)
-        shutil.copytree(isodir_path, isodir_test_path)
+            # Copy kernel from sysroot
+            sysroot_path = self.get_path("sysroot")
+            kernel_source = os.path.join(sysroot_path, "boot", "olympos.kernel")
+            kernel_dest = os.path.join(boot_path, "olympos.kernel")
+            shutil.copy2(kernel_source, kernel_dest)
 
-        grub_cfg_path = os.path.join(isodir_test_path, "boot/grub/grub.cfg")
-        with open(grub_cfg_path, "w") as f:
-            f.write(grub_config)
+            grub_config = """
+            set timeout=0
+            set default=0
+            menuentry "olympos-test" {
+                multiboot /boot/olympos.kernel
+                boot
+            }
+            """
+            grub_cfg_path = os.path.join(grub_path, "grub.cfg")
+            with open(grub_cfg_path, "w") as f:
+                f.write(grub_config)
 
-        if self.verbose:
-            print("Creating test ISO...")
-            iso_cmd = f"cd {self.root_dir} && grub-mkrescue -o olympos-test.iso isodir-test"
-        else:
-            iso_cmd = f"cd {self.root_dir} && grub-mkrescue -o olympos-test.iso isodir-test > /dev/null 2>&1"
-
-        os.system(iso_cmd)
+            if self.verbose:
+                print("Creating test ISO...")
+                iso_cmd = f"cd {self.root_dir} && grub-mkrescue -o olympos-test.iso isodir-test"
+            else:
+                iso_cmd = f"cd {self.root_dir} && grub-mkrescue -o olympos-test.iso isodir-test > /dev/null 2>&1"
+            return os.system(iso_cmd) == 0
+        except Exception as e:
+            print(f"Error creating test ISO: {e}")
+            return False
 
     def run_qemu(self) -> tuple[int, str]:
         iso_path = self.get_path("olympos-test.iso")
@@ -138,7 +127,6 @@ class OlymposTestFramework:
         return result.returncode, output
 
     def run_test(self, test: Dict[str, Any]) -> bool:
-        """Run a single test"""
         test_name = test["name"]
         self.backup_kernel()
         output = ""
@@ -146,9 +134,11 @@ class OlymposTestFramework:
 
         try:
             if not self.create_test_kernel(test["code"]):
-                self.results.append({"name": test_name, "passed": False, "output": ""})
+                self.results.append({"name": test_name, "passed": False, "output": "Failed to build test kernel"})
                 return False
-            self.setup_test_iso()
+            if not self.create_test_iso():
+                self.results.append({"name": test_name, "passed": False, "output": "Failed to create test ISO"})
+                return False
             return_code, output = self.run_qemu()
             success = return_code == 1 and test["expected"] in output
 
@@ -163,7 +153,6 @@ class OlymposTestFramework:
 
         self.results.append({"name": test_name, "passed": success, "output": output})
         return success
-
 
     def run_all_tests(self):
         total_test_count = len(self.tests)
@@ -189,7 +178,7 @@ class OlymposTestFramework:
 
     def cleanup(self):
         files_to_remove = [self.get_path("olympos-test.iso"), self.get_path("build-test.sh")]
-        dirs_to_remove = [self.get_path("isodir-test")]
+        dirs_to_remove = [self.get_path("isodir-test"), self.get_path("sysroot")]
 
         for f in files_to_remove:
             if os.path.exists(f):
@@ -197,3 +186,17 @@ class OlymposTestFramework:
         for d in dirs_to_remove:
             if os.path.exists(d):
                 shutil.rmtree(d)
+
+        if self.verbose:
+            print("Cleaning projects...")
+            clean_cmd = (
+                f"cd {self.root_dir}"
+                f"&& . ./config.sh && for PROJECT in $PROJECTS; do (cd $PROJECT && $MAKE clean); done"
+            )
+        else:
+            clean_cmd = (
+                f"cd {self.root_dir} && . ./config.sh "
+                f"&& for PROJECT in $PROJECTS; do (cd $PROJECT && $MAKE clean); done > /dev/null 2>&1"
+            )
+
+        os.system(clean_cmd)
