@@ -7,7 +7,7 @@
 #include <kernel/multiboot.h>
 #include <kernel/debug.h>
 #include <kernel/serial.h>
-
+#include <kernel/gdt.h>
 
 /**
  * Kernel entry point
@@ -18,6 +18,7 @@ void kernel_main(unsigned long magic, unsigned long addr) {
     debug_initialize(mbi);
 
     terminal_initialize();
+    gdt_init();
 
     printf("=======================================\n");
     printf("Welcome to Olympos\n");
