@@ -1,0 +1,3 @@
+- https://wiki.osdev.org/
+- Intel® 64 and IA-32 Architectures Software Developer’s Manual Volume 3A: System Programming Guide, Part 1
+- https://ordoflammae.github.io/littleosbook/
