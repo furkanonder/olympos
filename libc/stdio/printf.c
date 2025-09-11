@@ -29,6 +29,7 @@ static bool print(const char* data, size_t length) {
  * - %c:  Character
  * - %s:  String
  * - %d:  Signed integer
+ * - %u:  Unsigned integer (decimal)
  * - %p:  Pointer (prefixed with 0x)
  * - %x:  Unsigned integer in hexadecimal
  * - %ld: Long signed integer
@@ -142,6 +143,31 @@ int printf(const char* restrict format, ...) {
             }
 
             /* Print the integer */
+            if (!print(num_str, len)) {
+                return -1;
+            }
+            written += len;
+        }
+        /* Handle %u format specifier (unsigned integer) */
+        else if (*format == 'u') {
+            format++;
+            /* Get the unsigned integer argument */
+            unsigned int u = va_arg(parameters, unsigned int);
+
+            /* Convert unsigned integer to string */
+            char num_str[32];
+            itoa(u, num_str, 10);
+
+            /* Calculate string length */
+            size_t len = strlen(num_str);
+
+            /* Check for potential integer overflow */
+            if (maxrem < len) {
+                // TODO: Set errno to EOVERFLOW.
+                return -1;
+            }
+
+            /* Print the unsigned integer */
             if (!print(num_str, len)) {
                 return -1;
             }

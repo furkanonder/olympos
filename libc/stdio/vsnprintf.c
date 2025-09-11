@@ -6,6 +6,19 @@
 /**
  * Helper function to write formatted output to a string buffer
  *
+ * Supports the following format specifiers:
+ * - %c:  Character
+ * - %s:  String
+ * - %d:  Signed integer
+ * - %u:  Unsigned integer (decimal)
+ * - %p:  Pointer (prefixed with 0x)
+ * - %x:  Unsigned integer in hexadecimal
+ * - %ld: Long signed integer
+ * - %lu: Long unsigned integer
+ * - %lx: Long unsigned integer in hexadecimal
+ * - %zu: Size_t as unsigned
+ * - %zd: Size_t as signed decimal
+ *
  * @param buffer    Pointer to the buffer to write to
  * @param size      Maximum number of bytes to write (including null terminator)
  * @param format    Format string containing text and format specifiers
@@ -95,6 +108,27 @@ int vsnprintf(char* restrict buffer, size_t size, const char* restrict format, v
             virtual_len += len;
 
             /* Copy integer string to buffer */
+            size_t copy_len = (buffer_pos + len < size) ? len : (size - buffer_pos - 1);
+            if (copy_len > 0) {
+                memcpy(buffer + buffer_pos, num_str, copy_len);
+                buffer_pos += copy_len;
+            }
+        }
+        /* Handle %u format specifier (unsigned integer) */
+        else if (*format == 'u') {
+            format++;
+            /* Get the unsigned integer argument */
+            unsigned int u = va_arg(args, unsigned int);
+
+            /* Convert unsigned integer to string */
+            char num_str[32];
+            itoa(u, num_str, 10);
+
+            /* Calculate string length */
+            size_t len = strlen(num_str);
+            virtual_len += len;
+
+            /* Copy unsigned integer string to buffer */
             size_t copy_len = (buffer_pos + len < size) ? len : (size - buffer_pos - 1);
             if (copy_len > 0) {
                 memcpy(buffer + buffer_pos, num_str, copy_len);

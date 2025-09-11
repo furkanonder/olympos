@@ -75,7 +75,20 @@ def register_printf_tests(framework: OlymposTestFramework):
         name="printf_format_d", test_code=PRINTF_TEST_TEMPLATE.format(test_body=test_body), expected_output="TEST_PASS"
     )
 
-    # Test 5: Pointer format specifier
+    # Test 5: Unsigned integer format specifier
+    test_body = """
+    unsigned int u = 1234567890; // stays within INT_MAX to avoid itoa sign issues
+    printf("Unsigned (%%u): %u\n", u);
+    printf("TEST_PASS\n");
+    """
+
+    framework.register_test(
+        name="printf_format_u",
+        test_code=PRINTF_TEST_TEMPLATE.format(test_body=test_body),
+        expected_output="TEST_PASS",
+    )
+
+    # Test 6: Pointer format specifier
     test_body = """
     int x = 10;
     int *ptr = &x;
@@ -88,7 +101,7 @@ def register_printf_tests(framework: OlymposTestFramework):
         name="printf_format_p", test_code=PRINTF_TEST_TEMPLATE.format(test_body=test_body), expected_output="TEST_PASS"
     )
 
-    # Test 6: Hexadecimal format specifier
+    # Test 7: Hexadecimal format specifier
     test_body = """
     unsigned int hex_val = 0xFF;
     printf("Hexadecimal (%%x): 0x%x\\n", hex_val);
@@ -99,7 +112,7 @@ def register_printf_tests(framework: OlymposTestFramework):
         name="printf_format_x", test_code=PRINTF_TEST_TEMPLATE.format(test_body=test_body), expected_output="TEST_PASS"
     )
 
-    # Test 7: Long integer format specifiers
+    # Test 8: Long integer format specifiers
     test_body = """
     long int ld_val = 1234567890;
     printf("Long Integer (%%ld): %ld\\n", ld_val);
@@ -116,7 +129,7 @@ def register_printf_tests(framework: OlymposTestFramework):
         expected_output="TEST_PASS",
     )
 
-    # Test 8: size_t format specifiers
+    # Test 9: size_t format specifiers
     test_body = """
     size_t size_val = 123456;
     printf("Size_t value (%%zu): %zu\\n", size_val);
@@ -130,7 +143,7 @@ def register_printf_tests(framework: OlymposTestFramework):
         expected_output="TEST_PASS",
     )
 
-    # Test 9: Combined format specifiers
+    # Test 10: Combined format specifiers
     test_body = """
     printf("Combined formats: char=%c, int=%d, hex=0x%x, size_t=%zu\\n", 'X', 42, 0xDEAD, (size_t)98765);
     printf("TEST_PASS\\n");
@@ -142,7 +155,7 @@ def register_printf_tests(framework: OlymposTestFramework):
         expected_output="TEST_PASS",
     )
 
-    # Test 10: Edge cases and special values
+    # Test 11: Edge cases and special values
     test_body = """
     // Test edge cases
     printf("Zero: %d\\n", 0);
@@ -160,7 +173,7 @@ def register_printf_tests(framework: OlymposTestFramework):
         expected_output="TEST_PASS",
     )
 
-    # Test 11: Multiple arguments
+    # Test 12: Multiple arguments
     test_body = """
     printf("Multiple args: %d %s %x %c %p\\n", 123, "test", 0xABC, 'Q', (void*)0x1000);
     printf("TEST_PASS\\n");
@@ -172,7 +185,7 @@ def register_printf_tests(framework: OlymposTestFramework):
         expected_output="TEST_PASS",
     )
 
-    # Test 12: Format specifier errors (should still work)
+    # Test 13: Format specifier errors (should still work)
     test_body = """
     // Test with unrecognized format specifier
     printf("Unknown format: %q\\n");
