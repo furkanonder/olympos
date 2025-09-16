@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <assert.h>
-#include <stdbool.h>
 
 #include <kernel/tty.h>
 #include <kernel/multiboot.h>
 #include <kernel/debug.h>
-#include <kernel/serial.h>
 #include <kernel/gdt.h>
+#include <kernel/interrupts.h>
 
 /**
  * Kernel entry point
@@ -17,8 +16,9 @@ void kernel_main(unsigned long magic, unsigned long addr) {
     multiboot_info_t* mbi = (multiboot_info_t*) addr;
     debug_initialize(mbi);
 
-    terminal_initialize();
     gdt_init();
+    idt_init();
+    terminal_initialize();
 
     printf("=======================================\n");
     printf("Welcome to Olympos\n");
