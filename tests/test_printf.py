@@ -78,8 +78,8 @@ def register_printf_tests(framework: OlymposTestFramework):
     # Test 5: Unsigned integer format specifier
     test_body = """
     unsigned int u = 1234567890; // stays within INT_MAX to avoid itoa sign issues
-    printf("Unsigned (%%u): %u\n", u);
-    printf("TEST_PASS\n");
+    printf("Unsigned (%%u): %u\\n", u);
+    printf("TEST_PASS\\n");
     """
 
     framework.register_test(
