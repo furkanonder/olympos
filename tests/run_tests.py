@@ -12,6 +12,8 @@ from test_serial import register_serial_tests
 from test_assert import register_assert_tests
 from test_gdt import register_gdt_tests
 from test_interrupt import register_interrupt_tests
+from test_pic import register_pic_tests
+from test_irq import register_irq_tests
 
 
 def list_tests(framework):
@@ -62,6 +64,8 @@ def main():
     register_assert_tests(framework)
     register_gdt_tests(framework)
     register_interrupt_tests(framework)
+    register_pic_tests(framework)
+    register_irq_tests(framework)
 
     if args.list:
         list_tests(framework)

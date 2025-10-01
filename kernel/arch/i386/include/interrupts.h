@@ -94,6 +94,24 @@ void isr29();  /* Reserved */
 void isr30();  /* Reserved */
 void isr31();  /* Reserved */
 
+/* IRQ Stub Functions - hardware interrupts remapped to vectors 32-47 (0x20-0x2F) after PIC initialization */
+void irq0();   /* Programmable Interval Timer (PIT) */
+void irq1();   /* Keyboard */
+void irq2();   /* Cascade (used internally by PICs) */
+void irq3();   /* COM2 (Serial Port 2) */
+void irq4();   /* COM1 (Serial Port 1) */
+void irq5();   /* LPT2 (Parallel Port 2) */
+void irq6();   /* Floppy Disk Controller */
+void irq7();   /* LPT1 (Parallel Port 1) */
+void irq8();   /* Real-Time Clock (RTC) */
+void irq9();   /* ACPI / Available */
+void irq10();  /* Available */
+void irq11();  /* Available */
+void irq12();  /* PS/2 Mouse */
+void irq13();  /* FPU / Coprocessor / Inter-processor */
+void irq14();  /* Primary ATA Hard Disk */
+void irq15();  /* Secondary ATA Hard Disk */
+
 /**
  * CPU register state structure
  * 
@@ -250,6 +268,17 @@ typedef void (*isr_handler_fn)(regs_t*);
 int register_isr(int isr, isr_handler_fn handler);
 
 /**
+ * Unregister a handler and mask the IRQ at the PIC.
+ *
+ * This function removes the registered handler for the specified IRQ and masks (disables)
+ * the interrupt at the PIC level, preventing further interrupts from this line.
+ *
+ * @param irq Hardware IRQ line number (0..15 on legacy PIC)
+ * @return 0 on success, -1 if the IRQ is out of range
+ */
+int unregister_irq(int irq);
+
+/**
  * Main ISR handler dispatcher
  *
  * This function is called by the assembly ISR stubs with a pointer to
@@ -261,9 +290,23 @@ int register_isr(int isr, isr_handler_fn handler);
 void isr_handler(regs_t* r);
 
 /**
- * Initialize the Interrupt Descriptor Table (IDT)
- * 
- * Sets up CPU exception handlers (0-31) and enables interrupts.
+ * Initialize and load the IDT.
+ *
+ * Sets up the Interrupt Descriptor Table with handlers for CPU exceptions (vectors 0-31) and hardware
+ * interrupts (vectors 32-47). Each IDT entry contains a handler address, code segment selector, and
+ * type/attributes. When an interrupt occurs, the CPU uses the vector number to index into the IDT and
+ * jump to the corresponding handler.
+ *
+ * Steps performed:
+ * - Clears all 256 IDT entries
+ * - Installs ISR handlers for CPU exceptions (0-31)
+ * - Remaps PIC to vectors 32-47 to avoid conflicts with CPU exceptions
+ * - Installs IRQ handlers for hardware interrupts (32-47)
+ * - Loads the IDTR register and enables interrupts
+ *
+ * Vector assignments:
+ * - 0-31:   CPU exceptions (division error, page fault, general protection fault, etc.)
+ * - 32-47:  Hardware interrupts (PIT, keyboard, serial ports, disk controllers, etc.)
  */
 void idt_init(void);
 

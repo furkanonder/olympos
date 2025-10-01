@@ -1,10 +1,18 @@
-; Declare the external C handler
+; Declare the external C handlers
 extern isr_handler
+extern irq_handler
 
 ; === Auto-generate global isr0 to isr31 ===
 %assign i 0
 %rep 32
     global isr%+i
+%assign i i+1
+%endrep
+
+; === Auto-generate global irq0 to irq15 ===
+%assign i 0
+%rep 16
+    global irq%+i
 %assign i i+1
 %endrep
 
@@ -33,6 +41,16 @@ isr%1:
     push dword [esp]     ; Real error code already on stack (exceptions 8, 10, 11, 12, 13, 14, 17)
     push dword %1        ; Interrupt number for identification
     jmp isr_common_stub  ; Jump to common handler
+%endmacro
+
+; === Macro to define IRQ handler stubs ===
+; Hardware interrupts (IRQs) don't push error codes, so we always push a dummy 0.
+; IRQ numbers (0-15) are mapped to interrupt vectors 32-47 by adding 32.
+%macro IRQ_STUB 1
+irq%1:
+	push dword 0         ; Dummy error code (IRQs never push error codes)
+	push dword (32 + %1) ; Interrupt vector number (IRQ %1 -> vector 32 + %1)
+	jmp irq_common_stub  ; Jump to common IRQ handler
 %endmacro
 
 ; === Common ISR handler stub ===
@@ -163,6 +181,71 @@ isr_common_stub:
     ; - Resumes execution at the saved EIP
     iret
 
+; === Common IRQ handler stub ===
+irq_common_stub:
+	; This is the common handler that ALL hardware interrupt requests (IRQs) jump to.
+	; It performs the same context saving/restoration as isr_common_stub, but calls
+	; irq_handler instead of isr_handler. The IRQ handler is responsible for sending
+	; EOI (End of Interrupt) to the PIC.
+	;
+	; CURRENT STACK STATE (when we arrive here):
+	; ==========================================
+	; ESP ──► [ErrorCode=0] [IntNo=32-47] [EFLAGS] [CS] [EIP] [user data...]
+	;
+	; IRQs are remapped to vectors 32-47 (0x20-0x2F) to avoid conflicts with CPU exceptions.
+
+	; STEP 1: Save all general-purpose registers
+	; ==========================================
+	; Pushes: EAX, ECX, EDX, EBX, ESP (dummy), EBP, ESI, EDI
+	pushad
+
+	; STEP 2: Save current data segment selector
+	; ==========================================
+	push ds
+
+	; STEP 3: Switch to kernel data segments
+	; ======================================
+	; Load kernel data segment selector (GDT index 2 << 3 = 0x10)
+	mov ax, 0x10         ; Kernel data segment selector
+	mov ds, ax           ; Data segment
+	mov es, ax           ; Extra segment
+	mov fs, ax           ; FS segment
+	mov gs, ax           ; GS segment
+
+	; STEP 4: Prepare argument for C handler
+	; ======================================
+	; ESP now points to the saved register structure
+	mov eax, esp         ; Get pointer to saved registers
+	push eax             ; Push as argument: irq_handler(regs_t *regs)
+
+	; STEP 5: Call C IRQ handler
+	; ==========================
+	; The C handler will:
+	; - Process the hardware interrupt
+	; - Send EOI (End of Interrupt) to the PIC
+	call irq_handler
+
+	; STEP 6: Clean up argument
+	; =========================
+	add esp, 4           ; Remove regs_t pointer from stack
+
+	; STEP 7: Restore original data segment
+	; =====================================
+	pop ds
+
+	; STEP 8: Restore all general-purpose registers
+	; =============================================
+	popad
+
+	; STEP 9: Clean up error code and interrupt number
+	; ================================================
+	add esp, 8           ; Remove dummy error code + interrupt number
+
+	; STEP 10: Return from interrupt
+	; ==============================
+	; Restores EFLAGS, CS, EIP (and SS, ESP if privilege change)
+	iret
+
 ; === Define ISR stubs 0–31 (with correct error code usage) ===
 ; Exceptions that push error codes: 8, 10, 11, 12, 13, 14, 17
 ; - 8:  Double Fault
@@ -181,5 +264,29 @@ isr_common_stub:
     %else
         ISR_NOERR i
     %endif
+%assign i i+1
+%endrep
+
+; === Define IRQ stubs 0-15 (mapped to vectors 32-47) ===
+; Hardware interrupt requests from the PIC:
+; - IRQ 0:  Programmable Interval Timer (PIT)
+; - IRQ 1:  Keyboard
+; - IRQ 2:  Cascade (used internally by PICs)
+; - IRQ 3:  COM2 (Serial Port 2)
+; - IRQ 4:  COM1 (Serial Port 1)
+; - IRQ 5:  LPT2 (Parallel Port 2)
+; - IRQ 6:  Floppy Disk Controller
+; - IRQ 7:  LPT1 (Parallel Port 1)
+; - IRQ 8:  Real-Time Clock (RTC)
+; - IRQ 9:  ACPI / Available
+; - IRQ 10: Available
+; - IRQ 11: Available
+; - IRQ 12: PS/2 Mouse
+; - IRQ 13: FPU / Coprocessor / Inter-processor
+; - IRQ 14: Primary ATA Hard Disk
+; - IRQ 15: Secondary ATA Hard Disk
+%assign i 0
+%rep 16
+	IRQ_STUB i
 %assign i i+1
 %endrep

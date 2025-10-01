@@ -4,6 +4,7 @@
 
 #include "include/interrupts.h"
 #include "include/io.h"
+#include "include/pic.h"
 
 /* Defined in idt_load.nasm. Used to load the IDTR (IDT Register). */
 extern void idt_load(uint32_t);
@@ -32,21 +33,21 @@ static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags
 /**
  * Initialize and load the IDT.
  *
- * - Clears the table
- * - Fills exception vectors (0..31) - CPU-defined exceptions only
- * - Loads IDTR and enables interrupts
+ * Sets up the Interrupt Descriptor Table with handlers for CPU exceptions (vectors 0-31) and hardware
+ * interrupts (vectors 32-47). Each IDT entry contains a handler address, code segment selector, and
+ * type/attributes. When an interrupt occurs, the CPU uses the vector number to index into the IDT and
+ * jump to the corresponding handler.
  *
- * Initializes the central data structure that tells the CPU where to find interrupt handlers. When an interrupt occurs,
- * the CPU uses the interrupt number as an index into the IDT to find the appropriate handler and jump to it. The IDT
- * entries point to our assembly ISR stubs (isr0 - isr31) which then call the common handler.
+ * Steps performed:
+ * - Clears all 256 IDT entries
+ * - Installs ISR handlers for CPU exceptions (0-31)
+ * - Remaps PIC to vectors 32-47 to avoid conflicts with CPU exceptions
+ * - Installs IRQ handlers for hardware interrupts (32-47)
+ * - Loads the IDTR register and enables interrupts
  *
- * Each IDT entry (gate descriptor) contains:
- * - Handler address (32-bit offset split into high/low parts)
- * - Code segment selector (must be kernel code segment)
- * - Type and attributes (interrupt gate, privilege level, present bit)
- *
- * Note: Only sets up vectors 0-31 (CPU exceptions). Vectors 32-255 are reserved for user-defined interrupts and can be
- * set up later.
+ * Vector assignments:
+ * - 0-31:   CPU exceptions (division error, page fault, general protection fault, etc.)
+ * - 32-47:  Hardware interrupts (PIT, keyboard, serial ports, disk controllers, etc.)
  */
 void idt_init(void) {
 	/* Initialize all 256 IDT entries to zero to ensure clean state. This prevents any garbage values from causing
@@ -57,7 +58,7 @@ void idt_init(void) {
 	const uint16_t kernel_code_selector = (1u << 3);	/* GDT index 1 << 3 = 0x08 */
 
 	/* These are the CPU-defined exceptions that can occur during execution. Each entry points to an assembly stub that
-     * handles the complete context saving and restoration sequence. */
+	 * handles the complete context saving and restoration sequence. */
 	idt_set_gate(0,  (uint32_t)isr0,  kernel_code_selector, flags_int_gate);   /* Division By Zero */
 	idt_set_gate(1,  (uint32_t)isr1,  kernel_code_selector, flags_int_gate);   /* Debug */
 	idt_set_gate(2,  (uint32_t)isr2,  kernel_code_selector, flags_int_gate);   /* Non Maskable Interrupt */
@@ -90,9 +91,31 @@ void idt_init(void) {
 	idt_set_gate(29, (uint32_t)isr29, kernel_code_selector, flags_int_gate);   /* Reserved */
 	idt_set_gate(30, (uint32_t)isr30, kernel_code_selector, flags_int_gate);   /* Reserved */
 	idt_set_gate(31, (uint32_t)isr31, kernel_code_selector, flags_int_gate);   /* Reserved */
+	/* Remap PIC. The PIC is remapped to avoid conflicts with CPU exceptions (0-31).
+	 * IRQs 0-7 (master PIC) are remapped to vectors 32-39 (0x20-0x27).
+	 * IRQs 8-15 (slave PIC) are remapped to vectors 40-47 (0x28-0x2F). */
+	pic_remap(0x20, 0x28);
+	/* Hardware interrupt requests from the Programmable Interrupt Controller (PIC). These are triggered by external
+	 * hardware devices and are mapped to standard PC interrupt lines. */
+	idt_set_gate(32, (uint32_t)irq0,  kernel_code_selector, flags_int_gate);   /* Programmable Interval Timer (PIT) */
+	idt_set_gate(33, (uint32_t)irq1,  kernel_code_selector, flags_int_gate);   /* Keyboard */
+	idt_set_gate(34, (uint32_t)irq2,  kernel_code_selector, flags_int_gate);   /* Cascade (used internally by PICs) */
+	idt_set_gate(35, (uint32_t)irq3,  kernel_code_selector, flags_int_gate);   /* COM2 (Serial Port 2) */
+	idt_set_gate(36, (uint32_t)irq4,  kernel_code_selector, flags_int_gate);   /* COM1 (Serial Port 1) */
+	idt_set_gate(37, (uint32_t)irq5,  kernel_code_selector, flags_int_gate);   /* LPT2 (Parallel Port 2) */
+	idt_set_gate(38, (uint32_t)irq6,  kernel_code_selector, flags_int_gate);   /* Floppy Disk Controller */
+	idt_set_gate(39, (uint32_t)irq7,  kernel_code_selector, flags_int_gate);   /* LPT1 (Parallel Port 1) */
+	idt_set_gate(40, (uint32_t)irq8,  kernel_code_selector, flags_int_gate);   /* Real-Time Clock (RTC) */
+	idt_set_gate(41, (uint32_t)irq9,  kernel_code_selector, flags_int_gate);   /* ACPI / Available */
+	idt_set_gate(42, (uint32_t)irq10, kernel_code_selector, flags_int_gate);   /* Available */
+	idt_set_gate(43, (uint32_t)irq11, kernel_code_selector, flags_int_gate);   /* Available */
+	idt_set_gate(44, (uint32_t)irq12, kernel_code_selector, flags_int_gate);   /* PS/2 Mouse */
+	idt_set_gate(45, (uint32_t)irq13, kernel_code_selector, flags_int_gate);   /* FPU / Coprocessor / Inter-processor */
+	idt_set_gate(46, (uint32_t)irq14, kernel_code_selector, flags_int_gate);   /* Primary ATA Hard Disk */
+	idt_set_gate(47, (uint32_t)irq15, kernel_code_selector, flags_int_gate);   /* Secondary ATA Hard Disk */
 
 	/* The IDTR tells the CPU where to find the IDT and how big it is.
-	 * - limit: Size of IDT in bytes minus one (because 0 means 1 byte)
+	 * - limit: Offset of the last valid byte in the IDT (size - 1)
 	 * - base: Linear address of the first IDT entry
 	 * After this, the CPU knows where to look when interrupts occur. */
 	idtr.limit = (uint16_t)(sizeof(idt_entry_t) * IDT_NUM_ENTRIES - 1);
@@ -100,7 +123,7 @@ void idt_init(void) {
 	idt_load((uint32_t)&idtr);
 
 	/* This allows the CPU to respond to interrupts. Without this, the CPU will ignore all interrupts except
-     * NMI (Non-Maskable Interrupt). */
+	 * NMI (Non-Maskable Interrupt). */
 	printf("[  OK  ] IDT initialized successfully.\n");
 	asm volatile ("sti");  /* Enable interrupts globally */
 }
