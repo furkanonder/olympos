@@ -7,6 +7,7 @@
 #include <kernel/debug.h>
 #include <kernel/gdt.h>
 #include <kernel/interrupts.h>
+#include <kernel/keyboard.h>
 
 /**
  * Kernel entry point
@@ -16,12 +17,18 @@ void kernel_main(unsigned long magic, unsigned long addr) {
     multiboot_info_t* mbi = (multiboot_info_t*) addr;
     debug_initialize(mbi);
 
+    terminal_initialize();
     gdt_init();
     idt_init();
-    terminal_initialize();
+    keyboard_initialize();
 
     printf("=======================================\n");
     printf("Welcome to Olympos\n");
     printf("An experimental 32-bit Operating System\n");
     printf("=======================================\n");
+
+    /* Enter idle loop. CPU halts until woken by interrupts (keyboard, timer, etc.). */
+    while (1) {
+        asm volatile("hlt");
+    }
 }
