@@ -25,4 +25,10 @@ void print_backtrace(void);
  */
 const char* find_symbol_for_address(uint32_t addr);
 
+/**
+ * End of all kernel ELF sections (page-aligned)
+ * This marks where the kernel heap can begin
+ */
+extern uint32_t elf_sections_end;
+
 #endif

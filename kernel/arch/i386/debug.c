@@ -16,6 +16,12 @@ static const char* string_table = NULL;
 static size_t string_table_size = 0;
 static int debug_initialized = 0;
 
+/* Extern symbol from linker script marking end of kernel sections */
+extern uint32_t _kernel_sections_end;
+
+/* For marking the end of all sections. Kernel heap begins above this. */
+uint32_t elf_sections_end = 0;
+
 /**
  * Find and return the symbol name for a given memory address
  *
@@ -119,10 +125,10 @@ void print_backtrace(void) {
     }
 
     if (frame_count == 0) {
-        printf("  No stack frames found\n");
+        printf("[FAILED] print_backtrace: No stack frames found\n");
     }
     else if (frame_count >= max_frames) {
-        printf("  [...]  Maximum backtrace depth reached\n");
+        printf("[FAILED] print_backtrace: Maximum backtrace depth reached\n");
     }
 }
 
@@ -153,7 +159,7 @@ static Elf32_Shdr_t* find_section(Elf32_Shdr_t *sht, size_t sht_len, const char 
 void debug_initialize(multiboot_info_t *mbi) {
     /* Check if multiboot has ELF section information */
     if (!(mbi->flags & MULTIBOOT_INFO_ELF_SHDR)) {
-        printf("Debug: No ELF section information available\n");
+        printf("[FAILED] No ELF section information available\n");
         return;
     }
 
@@ -163,7 +169,7 @@ void debug_initialize(multiboot_info_t *mbi) {
 
     /* Make sure the section header string index is valid */
     if (mbi->u.elf_sec.shndx >= sht_len) {
-        printf("Debug: Invalid section header string index\n");
+        printf("[FAILED] debug_initialize: Invalid section header string index\n");
         return;
     }
 
@@ -177,7 +183,7 @@ void debug_initialize(multiboot_info_t *mbi) {
         symbol_count = symtab_hdr->sh_size / sizeof(Elf32_Sym_t);
     }
     else {
-        printf("Debug: Symbol table not found\n");
+        printf("[FAILED] debug_initialize: Symbol table not found\n");
     }
 
     /* Find the string table */
@@ -187,15 +193,28 @@ void debug_initialize(multiboot_info_t *mbi) {
         string_table_size = strtab_hdr->sh_size;
     }
     else {
-        printf("Debug: String table not found\n");
+        printf("[FAILED] debug_initialize: String table not found\n");
     }
+
+    /* Calculate the end of all ELF sections (for kernel heap) */
+    uint32_t max_addr = (uint32_t) &_kernel_sections_end;
+    for (size_t i = 0; i < sht_len; i++) {
+        uint32_t section_end = sht[i].sh_addr + sht[i].sh_size;
+        if (section_end > max_addr) {
+            max_addr = section_end;
+        }
+    }
+    /* Round up to page boundary (4 KiB) */
+    elf_sections_end = (max_addr + 0xFFF) & ~0xFFF;
 
     /* Set initialization flag if we found both tables */
     if (symbol_table && string_table) {
         debug_initialized = 1;
-        printf("Debug: Symbol tables initialized (%zu symbols available)\n", symbol_count);
+        printf("[INFO] Symbol tables initialized (%zu symbols available)\n", symbol_count);
+        printf("[INFO] Kernel sections end at %p\n", elf_sections_end);
     }
     else {
-        printf("Debug: Symbol information incomplete (symtab: %p, strtab: %p)\n", symbol_table, string_table);
+        printf("[FAILED] debug_initialize: Symbol information incomplete (symtab: %p, strtab: %p)\n",
+				symbol_table, string_table);
     }
 }
