@@ -33,6 +33,11 @@
 #define KBD_STATUS_PORT 0x64  /* Status register - check for data availability */
 #define KBD_STATUS_OBF  0x01  /* Output Buffer Full - bit 0: data ready to read */
 
+/* Character buffer for keyboard input. Used to pass characters from IRQ handler to getchar() implementation */
+static char keyboard_char = 0;
+/* Flag: true if keyboard_char contains unread data */
+static bool has_char = false;
+
 /* Forward declarations */
 static void keyboard_on_irq(void);
 
@@ -46,7 +51,10 @@ static void keyboard_on_irq(void);
  *          the handler reads scancode(s) directly from the controller.
  */
 static void kb_irq_trampoline(regs_t* r) {
-	(void)r;
+	(void) r;  // Unused parameter
+	// Clear previous character and flag before processing new interrupt
+	keyboard_char = 0;
+	has_char = false;
 	keyboard_on_irq();
 }
 
@@ -126,6 +134,34 @@ void keyboard_initialize(void) {
 }
 
 /**
+ * Blocking character input for shell/interactive applications
+ *
+ * This function provides getchar()-style blocking input by waiting for keyboard IRQs to populate the character buffer.
+ * It's the bridge between interrupt-driven keyboard input and the blocking I/O model expected by standard C library
+ * functions.
+ *
+ * Implementation:
+ * 1. Waits (using HLT to save power) until has_char flag is set by IRQ handler
+ * 2. Retrieves the character from keyboard_char buffer
+ * 3. Clears the has_char flag to indicate buffer is empty
+ * 4. Returns the character to the caller
+ *
+ * This is called by getchar() in libc to implement standard input for the shell.
+ *
+ * @return ASCII character code of the key that was pressed
+ */
+int keyboard_callback_getchar(void) {
+    // Wait until we have a character (HLT saves power while waiting)
+    while (!has_char) {
+        __asm__ volatile("hlt");
+    }
+    // Get the character and clear the buffer
+    char c = keyboard_char;
+    has_char = false;
+    return c;
+}
+
+/**
  * Low-level keyboard IRQ handler.
  *
  * This handler is called whenever IRQ 1 fires (keyboard data available). It:
@@ -148,23 +184,19 @@ static void keyboard_on_irq(void) {
 	if ((inb(KBD_STATUS_PORT) & KBD_STATUS_OBF) == 0) {
 		return;  /* No data available */
 	}
-
 	/* Read the scancode from the data port */
 	uint8_t sc = inb(KBD_DATA_PORT);
-
-	/* Filter out break codes (key releases).
-	 * Break codes have bit 7 set (scancode | 0x80).
+	/* Filter out break codes (key releases). Break codes have bit 7 set (scancode | 0x80).
 	 * Example: 'A' pressed = 0x1E, 'A' released = 0x9E */
 	if (sc & 0x80) {
 		return;  /* Ignore key releases */
 	}
-
 	/* Translate scancode to ASCII using the lookup table.
 	 * If the scancode maps to 0, it's a non-printable key (Ctrl, Shift, etc.) */
 	char c = (sc < 128) ? scancode_to_ascii[sc] : 0;
-
-	/* Echo printable characters to the terminal */
+	/* Store character in buffer for getchar() to retrieve */
 	if (c) {
-		putchar(c);
+		keyboard_char = c;
+		has_char = true;
 	}
 }

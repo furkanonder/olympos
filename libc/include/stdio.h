@@ -14,6 +14,7 @@ extern "C" {
 
 int printf(const char* __restrict, ...);
 int putchar(int);
+int getchar(void);
 int puts(const char*);
 int snprintf(char* __restrict, size_t, const char* __restrict, ...);
 int vsnprintf(char* __restrict, size_t, const char* __restrict, va_list);

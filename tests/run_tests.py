@@ -16,6 +16,7 @@ from test_pic import register_pic_tests
 from test_irq import register_irq_tests
 from test_paging import register_paging_tests
 from test_kheap import register_kheap_tests
+from test_shell import register_shell_tests
 
 
 def list_tests(framework):
@@ -70,6 +71,7 @@ def main():
     register_irq_tests(framework)
     register_paging_tests(framework)
     register_kheap_tests(framework)
+    register_shell_tests(framework)
 
     if args.list:
         list_tests(framework)

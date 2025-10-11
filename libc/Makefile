@@ -45,6 +45,7 @@ $(ARCH_FREEOBJS) \
 assert/assert.o \
 stdio/printf.o \
 stdio/putchar.o \
+stdio/getchar.o \
 stdio/puts.o \
 stdio/snprintf.o \
 stdio/vsnprintf.o \
@@ -54,8 +55,12 @@ string/memcmp.o \
 string/memcpy.o \
 string/memmove.o \
 string/memset.o \
+string/strchr.o \
 string/strcmp.o \
+string/strcspn.o \
 string/strlen.o \
+string/strspn.o \
+string/strtok.o \
 
 # Objects that require a hosted environment
 HOSTEDOBJS=\

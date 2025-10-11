@@ -53,6 +53,7 @@ LIBS:=$(LIBS) $(KERNEL_ARCH_LIBS)
 KERNEL_OBJS=\
 $(KERNEL_ARCH_OBJS) \
 init/kernel.o \
+init/shell.o \
 
 # Define all object files including C runtime objects
 OBJS=\
