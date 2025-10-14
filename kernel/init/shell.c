@@ -115,24 +115,22 @@ char* input_line(void) {
 
     while (1) {
         int c = getchar();
-        if (c == '\n') {				// User pressed Enter - return the complete line
+        if (c == '\n') {					// User pressed Enter - return the complete line
             putchar(c);
             buffer[position] = '\0';
             return buffer;
         }
-        else if (c == '\b') {
-            if (position > 0) {			// Backspace: delete previous character if it exists
+        if (c == '\b') {
+            if (position > 0) {				// Backspace: delete previous character if it exists
+                putchar('\b');
                 buffer[--position] = '\0';
-                terminal_backspace();	// Update display
             }
         }
         else {
-            // Buffer overflow protection: leave room for null terminator
-            if (position >= bufsize - 1) {
-            	continue; // Buffer is full, silently ignore additional input
+            if (position >= bufsize - 1) {  // Buffer overflow protection: leave room for null terminator
+                continue;                   // Buffer is full, silently ignore additional input
             }
-            // Add character to buffer and echo to screen
-            buffer[position++] = c;
+            buffer[position++] = c;         // Add character to buffer and echo to screen
             putchar(c);
         }
     }

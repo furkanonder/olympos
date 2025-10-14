@@ -1,8 +1,6 @@
 #ifndef _KERNEL_TTY_H
 #define _KERNEL_TTY_H
 
-#include <stddef.h>
-
 /**
  * Initializes the terminal interface
  *
@@ -38,13 +36,5 @@ void terminal_write(const char* data, size_t size);
  * @param data Pointer to the null-terminated string to write
  */
 void terminal_writestring(const char* data);
-
-/**
- * Handles backspace by moving cursor back and erasing character
- *
- * Moves the cursor one position back if not at the start of the line,
- * replaces the character with a space, and updates the cursor position.
- */
-void terminal_backspace(void);
 
 #endif

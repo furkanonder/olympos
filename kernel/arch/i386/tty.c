@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -62,6 +61,7 @@ void terminal_handle_newline() {
  *
  * Handles basic cursor advancement, wrapping, and scrolling:
  * - Processes '\n' as a newline (advances row, resets column)
+ * - Processes '\b' as backspace (moves cursor back, erases character)
  * - Moves to next line when reaching end of current line
  * - Scrolls the screen when reaching bottom
  * - Updates the hardware cursor position after writing
@@ -72,6 +72,10 @@ void terminal_putchar(char c) {
     unsigned char uc = c;
     if (uc == '\n') {
         terminal_handle_newline();
+    }
+    else if (uc == '\b') {
+        terminal_column--;
+        vga_write_char_at(' ', terminal_color, terminal_column, terminal_row);
     }
     else {
         vga_write_char_at(uc, terminal_color, terminal_column, terminal_row);
@@ -103,26 +107,4 @@ void terminal_write(const char* data, size_t size) {
  */
 void terminal_writestring(const char* data) {
     terminal_write(data, strlen(data));
-}
-
-/**
- * Handles backspace by moving cursor back and erasing character
- *
- * Moves the cursor one position back if not at the start of the line,
- * replaces the character with a space, and updates the cursor position.
- */
-void terminal_backspace(void) {
-    // Don't backspace if we're at the beginning of a line at row 0
-    if (terminal_column == 0 && terminal_row == 0) {
-        return;
-    }
-    // Move cursor back
-    if (terminal_column > 0) {
-        terminal_column--;
-    }
-    // Erase the character at the current position
-    vga_write_char_at(' ', terminal_color, terminal_column, terminal_row);
-    // Update hardware cursor
-    uint16_t cursor_pos = terminal_row * VGA_WIDTH + terminal_column;
-    vga_update_cursor_position(cursor_pos);
 }
