@@ -1,6 +1,7 @@
 ; Declare the external C handlers
 extern isr_handler
 extern irq_handler
+extern syscall_handler
 
 ; === Auto-generate global isr0 to isr31 ===
 %assign i 0
@@ -15,6 +16,9 @@ extern irq_handler
     global irq%+i
 %assign i i+1
 %endrep
+
+; === Export system call stub ===
+global isr128   ; System call interrupt (0x80 = 128)
 
 ; === Macros to define ISR handlers ===
 ;
@@ -116,13 +120,11 @@ isr_common_stub:
     ; The ESP saved here is the value BEFORE pushad, not the current ESP
     ; This creates the esp_dummy field in our regs_t structure
     pushad
-
     ; STEP 2: Save current data segment selector
     ; =========================================
     ; User-space might have different DS, so we need to save it before switching
     ; to kernel segments. This ensures we can restore the original DS later.
     push ds
-
     ; STEP 3: Switch to kernel data segments for safe memory access
     ; =============================================================
     ; Why this is necessary:
@@ -135,44 +137,37 @@ isr_common_stub:
     mov es, ax           ; Extra segment - for string operations
     mov fs, ax           ; FS segment - for thread-local storage (kernel context)
     mov gs, ax           ; GS segment - for additional kernel data access
-
     ; STEP 4: Prepare argument for C handler
     ; =====================================
     ; ESP now points to the saved register structure (regs_t)
     ; We push this pointer as the argument to our C handler
     mov eax, esp         ; ESP points to the saved register structure
     push eax             ; Push pointer as argument: (regs_t *regs)
-    
     ; STEP 5: Call C interrupt handler
     ; ===============================
     ; This calls our C function that will handle the actual interrupt processing
     ; The C handler receives a pointer to the complete saved CPU state
     call isr_handler     ; Call C interrupt handler
-    
     ; STEP 6: Clean up argument from stack
     ; ===================================
     ; Remove the regs_t pointer we pushed as an argument
     add esp, 4           ; Clean up argument from stack
-
     ; STEP 7: Restore original data segment selector
     ; =============================================
     ; Restore the DS that was in use before the interrupt
     pop ds
-    
     ; STEP 8: Restore all general-purpose registers
     ; ============================================
     ; This restores: EDI, ESI, EBP, ESP, EBX, EDX, ECX, EAX
     ; Note: The ESP restored here is the esp_dummy value (not useful)
     ; The real ESP will be restored by the iret instruction
     popad
-    
     ; STEP 9: Clean up error code and interrupt number from stack
     ; ==========================================================
     ; Remove the error code and interrupt number that were pushed by our macros
     ; This restores the stack to the state it was in when the CPU first pushed
     ; EFLAGS, CS, EIP (and ErrorCode if applicable)
     add esp, 8           ; Remove error code + interrupt number from stack
-    
     ; STEP 10: Return from interrupt
     ; =============================
     ; This instruction restores the CPU state that was automatically saved:
@@ -198,11 +193,9 @@ irq_common_stub:
 	; ==========================================
 	; Pushes: EAX, ECX, EDX, EBX, ESP (dummy), EBP, ESI, EDI
 	pushad
-
 	; STEP 2: Save current data segment selector
 	; ==========================================
 	push ds
-
 	; STEP 3: Switch to kernel data segments
 	; ======================================
 	; Load kernel data segment selector (GDT index 2 << 3 = 0x10)
@@ -211,36 +204,29 @@ irq_common_stub:
 	mov es, ax           ; Extra segment
 	mov fs, ax           ; FS segment
 	mov gs, ax           ; GS segment
-
 	; STEP 4: Prepare argument for C handler
 	; ======================================
 	; ESP now points to the saved register structure
 	mov eax, esp         ; Get pointer to saved registers
 	push eax             ; Push as argument: irq_handler(regs_t *regs)
-
 	; STEP 5: Call C IRQ handler
 	; ==========================
 	; The C handler will:
 	; - Process the hardware interrupt
 	; - Send EOI (End of Interrupt) to the PIC
 	call irq_handler
-
 	; STEP 6: Clean up argument
 	; =========================
 	add esp, 4           ; Remove regs_t pointer from stack
-
 	; STEP 7: Restore original data segment
 	; =====================================
 	pop ds
-
 	; STEP 8: Restore all general-purpose registers
 	; =============================================
 	popad
-
 	; STEP 9: Clean up error code and interrupt number
 	; ================================================
 	add esp, 8           ; Remove dummy error code + interrupt number
-
 	; STEP 10: Return from interrupt
 	; ==============================
 	; Restores EFLAGS, CS, EIP (and SS, ESP if privilege change)
@@ -290,3 +276,38 @@ irq_common_stub:
 	IRQ_STUB i
 %assign i i+1
 %endrep
+
+; === System Call Handler (int 0x80) ===
+; System calls are software interrupts triggered by user-space programs using 'int 0x80'.
+; Unlike hardware interrupts (IRQs) or CPU exceptions (ISRs), system calls:
+; - Are intentionally triggered by user programs
+; - Pass arguments in registers (EAX = syscall number, EBX, ECX, EDX, ESI, EDI = arguments)
+; - Return values in EAX
+; - Should NOT send EOI to PIC (they're not hardware interrupts)
+;
+; The handler follows the same save/restore pattern as other interrupts but calls syscall_handler instead of
+; isr_handler or irq_handler.
+isr128:
+	push dword 0         ; Dummy error code (system calls never have error codes)
+	push dword 0x80      ; Interrupt vector 0x80 (128 in decimal)
+	; Save all general-purpose registers (EAX contains syscall number, others may contain arguments)
+	pushad
+	; Save and switch to kernel data segments
+	push ds
+	mov ax, 0x10         ; Kernel data segment selector
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	; Call C syscall handler with pointer to saved registers
+	mov eax, esp         ; Get pointer to saved state
+	push eax             ; Pass as argument: syscall_handler(regs_t *regs)
+	call syscall_handler ; Call C handler
+	add esp, 4           ; Clean up argument
+	; Restore original data segment and general registers
+	pop ds
+	popad
+	; Clean up dummy error code and interrupt number
+	add esp, 8
+	; Return to user space (iret will restore user CS:EIP and user stack)
+	iret

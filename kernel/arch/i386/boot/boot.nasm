@@ -38,6 +38,7 @@ stack_top:
 ; Declare _start as a function symbol with the given symbol size.
 section .text
 global _start:function (_start.end - _start)
+global stack_top    ; Export stack_top so C code can reference it (used in TSS)
 
 ; External functions that will be called from this assembly file
 ; kernel_main - The C entry point of the kernel defined in kernel.c

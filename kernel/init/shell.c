@@ -9,16 +9,14 @@
 
 #include <stdio.h>
 #include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 
-#include <kernel/tty.h>
 #include <kernel/kheap.h>
+#include <kernel/tty.h>
 
-#define SHELL_TOK_BUFSIZE   64      	/* Max number of tokens per command */
-#define SHELL_RL_BUFSIZE    1024    	/* Max characters per input line */
-#define SHELL_TOK_DELIM     " \t\r\n\a"	/* Delimiters for tokenization */
+#define SHELL_TOK_BUFSIZE   64          /* Max number of tokens per command */
+#define SHELL_RL_BUFSIZE    1024        /* Max characters per input line */
+#define SHELL_TOK_DELIM     " \t\r\n\a" /* Delimiters for tokenization */
 
 /* Forward declarations for built-in command handlers */
 int shell_clear(char** args);
@@ -150,22 +148,22 @@ char* input_line(void) {
  * @return Null-terminated array of string pointers. Caller must free with kfree().
  */
 char** parse_line(char *line) {
-	int bufsize = SHELL_TOK_BUFSIZE, position = 0;
-  	char** tokens = (char**) kmalloc(bufsize * sizeof(char*)), *token;
+    int bufsize = SHELL_TOK_BUFSIZE, position = 0;
+    char** tokens = (char**) kmalloc(bufsize * sizeof(char*)), *token;
 
-  	if (!tokens) {
-    	printf("[FAILED] parse_line: tokens allocation error\n");
-    	return NULL;
-  	}
-	token = strtok(line, SHELL_TOK_DELIM);
-	while (token != NULL) {
-    	tokens[position++] = token;
-    	// TODO: Handle case where position >= bufsize (too many arguments)
-    	// Subsequent calls: pass NULL to continue tokenizing same string
-    	token = strtok(NULL, SHELL_TOK_DELIM);
-  	}
-  	tokens[position] = NULL;
-  	return tokens;
+    if (!tokens) {
+        printf("[FAILED] parse_line: tokens allocation error\n");
+        return NULL;
+    }
+    token = strtok(line, SHELL_TOK_DELIM);
+    while (token != NULL) {
+        tokens[position++] = token;
+        // TODO: Handle case where position >= bufsize (too many arguments)
+        // Subsequent calls: pass NULL to continue tokenizing same string
+        token = strtok(NULL, SHELL_TOK_DELIM);
+    }
+    tokens[position] = NULL;
+    return tokens;
 }
 
 /**

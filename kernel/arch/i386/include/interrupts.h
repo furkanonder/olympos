@@ -289,6 +289,15 @@ int unregister_irq(int irq);
  */
 void isr_handler(regs_t* r);
 
+
+/**
+ * Get the segment selector for a specific IDT entry.
+ *
+ * @param num Vector number (0..255)
+ * @return Segment selector (16-bit)
+ */
+uint16_t idt_get_selector(uint8_t num);
+
 /**
  * Initialize and load the IDT.
  *

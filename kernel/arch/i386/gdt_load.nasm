@@ -1,4 +1,5 @@
 global gdt_load    ; make the label gdt_load visible outside this file
+global tss_flush   ; make the label tss_flush visible outside this file
 
 ; gdt_load - Load the global descriptor table (GDT).
 ; stack: [esp + 4] the address of the first entry in the GDT
@@ -26,3 +27,22 @@ gdt_load:
 flush_cs:
     ; now we've changed cs to 0x08
     ret     ; return to the calling function
+
+; tss_flush - Load the Task State Segment (TSS) into the Task Register.
+; The TSS is at index 5 in the GDT.
+;
+; x86 Selector Format (16-bit):
+;   Bits 15 - 3:    Index (13 bits) - GDT/LDT entry number
+;   Bit  2:         TI (1 bit)      - Table Indicator (0=GDT, 1=LDT)
+;   Bits 1 - 0:     RPL (2 bits)    - Requested Privilege Level (0 - 3)
+;
+; Selector = (index << 3) | (TI << 2) | RPL
+;   - index << 3: Shift index to bits 3 - 15 (skip 3 bits: 2 for RPL + 1 for TI)
+;   - TI << 2:    Shift TI to bit 2 (skip 2 bits for RPL)
+;   - RPL:        Already in bits 0 - 1, no shift needed
+;
+; For TSS: (5 << 3) | (0 << 2) | 0 = 0x28
+tss_flush:
+    mov ax, 0x28        ; Load TSS selector (index=5, GDT, Ring 0)
+    ltr ax              ; Load Task Register with TSS selector
+    ret

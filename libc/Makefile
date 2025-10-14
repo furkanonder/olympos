@@ -61,6 +61,7 @@ string/strcspn.o \
 string/strlen.o \
 string/strspn.o \
 string/strtok.o \
+sys/syscall.o \
 
 # Objects that require a hosted environment
 HOSTEDOBJS=\

@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "include/interrupts.h"
-#include "include/io.h"
 #include "include/pic.h"
 
 /* Defined in idt_load.nasm. Used to load the IDTR (IDT Register). */
@@ -22,7 +21,7 @@ static idt_register_t idtr;
  * @param sel   Segment selector (e.g., kernel code selector)
  * @param flags Type/flags byte: [7]=P (Present), [6:5]=DPL, [4]=0, [3:0]=Gate Type
  */
-static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags) {
+void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags) {
 	idt[num].base_lo  = (uint16_t)(base & 0xFFFF);
 	idt[num].selector = sel;
 	idt[num].zero     = 0;
