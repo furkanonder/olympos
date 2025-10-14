@@ -35,11 +35,11 @@
  * P: Present bit. Must be set (1) for the descriptor to be valid.
  */
 struct idt_entry {
-	uint16_t base_lo;    /* Offset 15..0  */
-	uint16_t selector;   /* Segment selector */
-	uint8_t  zero;       /* Reserved, must be 0 */
-	uint8_t  type_attr;  /* P | DPL | 0 | Gate Type */
-	uint16_t base_hi;    /* Offset 31..16 */
+    uint16_t base_lo;    /* Offset 15..0  */
+    uint16_t selector;   /* Segment selector */
+    uint8_t  zero;       /* Reserved, must be 0 */
+    uint8_t  type_attr;  /* P | DPL | 0 | Gate Type */
+    uint16_t base_hi;    /* Offset 31..16 */
 } __attribute__((packed));
 typedef struct idt_entry idt_entry_t;
 
@@ -55,8 +55,8 @@ typedef struct idt_entry idt_entry_t;
  * - base:  Linear address of the first IDT entry
  */
 struct idt_register {
-	uint16_t limit; /* size in bytes - 1 */
-	uint32_t base;  /* linear address of first IDT entry */
+    uint16_t limit; /* size in bytes - 1 */
+    uint32_t base;  /* linear address of first IDT entry */
 } __attribute__((packed));
 typedef struct idt_register idt_register_t;
 
@@ -114,18 +114,18 @@ void irq15();  /* Secondary ATA Hard Disk */
 
 /**
  * CPU register state structure
- * 
+ *
  * This structure represents the complete CPU state at the time of an interrupt.
  * It matches the exact order of registers as pushed by the assembly ISR stubs.
  *
  * The structure layout follows the exact sequence of operations in isr_stubs.nasm:
- * 
+ *
  * 1. CPU AUTOMATIC ACTIONS (Hardware Level):
  *    - Receives interrupt/exception
  *    - Automatically pushes: EFLAGS, CS, EIP, ErrorCode (if applicable)
  *    - Looks up handler in IDT using interrupt number as index
  *    - Jumps to the handler (our ISR stub)
- * 
+ *
  * 2. ISR STUB ACTIONS (Assembly Level):
  *    - Handles error codes correctly (some exceptions push them, others don't)
  *    - Pushes interrupt number for identification
@@ -133,37 +133,37 @@ void irq15();  /* Secondary ATA Hard Disk */
  *    - Saves data segment (DS) - user space might have different segments
  *    - Switches to kernel segments for safe memory access
  *    - Calls C handler with pointer to saved state
- * 
+ *
  * 3. THE PUSHAD INSTRUCTION BEHAVIOR:
  *    The x86 pushad instruction pushes registers in this specific order:
  *    1. EAX, 2. ECX, 3. EDX, 4. EBX, 5. ESP (original), 6. EBP, 7. ESI, 8. EDI
  *
  * DETAILED STACK GROWTH VISUALIZATION (downward):
  * ===============================================
- * 
+ *
  * STEP 1 - Before Interrupt (Normal Execution):
  * ESP ──► [user data...]
  *         0x1000
- * 
+ *
  * STEP 2 - CPU Automatic Pushes (Hardware Level):
  * ESP ──► [EFLAGS] [CS] [EIP] [ErrorCode] [user data...]
  *         0x0FF0  ↑
  *                 CPU automatically pushed these 3-4 values
  *                 ErrorCode only pushed for specific exceptions (8,10,11,12,13,14,17)
- * 
+ *
  * STEP 3 - ISR Stub Manual Pushes (Assembly Level):
  * ESP ──► [IntNo] [EFLAGS] [CS] [EIP] [ErrorCode] [user data...]
  *         0x0FE8  ↑
  *                 ISR stub pushed interrupt number
  *                 This ESP value (0x0FE8) gets saved as ESP_DUMMY by pushad
- * 
+ *
  * STEP 4 - pushad Instruction (Saves All General Registers):
  * ESP ──► [EAX] [ECX] [EDX] [EBX] [ESP_DUMMY] [EBP] [ESI] [EDI] [IntNo] [EFLAGS] [CS] [EIP] [ErrorCode] [user data...]
  *         0x0FC8  ↑
  *                 Current ESP after pushad (useful for interrupt handling)
  *                 ↑
  *                 ESP_DUMMY contains 0x0FE8 (the ESP from BEFORE pushad - not useful!)
- * 
+ *
  * STEP 5 - Additional ISR Stub Pushes (DS, regs_ptr):
  * ESP ──► [DS] [regs_ptr] [EAX] [ECX] [EDX] [EBX] [ESP_DUMMY] [EBP] [ESI] [EDI] [IntNo] [EFLAGS] [CS] [EIP] [ErrorCode] [user data...]
  *         0x0FC0  ↑
@@ -171,16 +171,16 @@ void irq15();  /* Secondary ATA Hard Disk */
  *
  * ANALYSIS OF WHY ESP_DUMMY IS "DUMMY":
  * ==============================================
- * 
+ *
  * 1. ESP_DUMMY = 0x0FE8 (ESP from STEP 3 - before pushad executed)
  * 2. Current ESP = 0x0FC0 (ESP from STEP 5 - after all pushes completed)
  * 3. For interrupt handling, you need the CURRENT ESP (0x0FC0), not the old one (0x0FE8)
  * 4. ESP_DUMMY is just a placeholder to maintain the exact register order from pushad
- * 
+ *
  * =============================================================================
  * STRUCTURE LAYOUT
  * =============================================================================
- * 
+ *
  * Layout (matches pushad + manual pushes in isr_stubs.nasm):
  * - ds: Data segment selector (saved manually)
  * - edi, esi, ebp, esp_dummy, ebx, edx, ecx, eax: General registers (pushad)
@@ -188,15 +188,15 @@ void irq15();  /* Secondary ATA Hard Disk */
  * - err_code: Error code (if applicable, 0 otherwise)
  * - eip, cs, eflags: Return address and flags (pushed by CPU)
  * - useresp, ss: User stack pointer and segment (if privilege change)
- * 
+ *
  * MEMORY LAYOUT OF regs_t STRUCTURE:
  * ==================================
- * 
+ *
  * Offset  Field        Value                    Description
  * ------  -----------  -----------------------  -----------------------------------
  * +0      ds           0x10                    Data segment selector
  * +4      edi          [saved EDI]             General register
- * +8      esi          [saved ESI]             General register  
+ * +8      esi          [saved ESI]             General register
  * +12     ebp          [saved EBP]             General register
  * +16     esp_dummy    0x0FE8                  **DUMMY** - ESP before pushad
  * +20     ebx          [saved EBX]             General register
@@ -210,16 +210,16 @@ void irq15();  /* Secondary ATA Hard Disk */
  * +52     eflags       [CPU flags]             CPU flags register
  * +56     useresp      [user stack pointer]    User stack (if privilege change)
  * +60     ss           [stack segment]         Stack segment (if privilege change)
- * 
+ *
  * VISUAL STACK LAYOUT:
  * ====================
- * 
+ *
  * High Memory (0x1000)
  *     │
  *     ▼ [user data...]
  *     │
  *     ▼ [EFLAGS]      ← CPU pushed
- *     │ [CS]          ← CPU pushed  
+ *     │ [CS]          ← CPU pushed
  *     │ [EIP]         ← CPU pushed
  *     │ [ErrorCode]   ← CPU pushed (some exceptions)
  *     │ [IntNo]       ← ISR stub pushed
@@ -249,7 +249,7 @@ typedef struct regs {
 
 /**
  * ISR handler function pointer type
- * 
+ *
  * @param r Pointer to saved CPU register state
  */
 typedef void (*isr_handler_fn)(regs_t*);
@@ -288,15 +288,6 @@ int unregister_irq(int irq);
  * @param r Pointer to saved CPU register state
  */
 void isr_handler(regs_t* r);
-
-
-/**
- * Get the segment selector for a specific IDT entry.
- *
- * @param num Vector number (0..255)
- * @return Segment selector (16-bit)
- */
-uint16_t idt_get_selector(uint8_t num);
 
 /**
  * Initialize and load the IDT.
